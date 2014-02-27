@@ -17,3 +17,12 @@ import pbr.version
 
 __version__ = pbr.version.VersionInfo(
     'bricks').version_string()
+
+import os
+
+os.environ['EVENTLET_NO_GREENDNS'] = 'yes'
+
+import eventlet
+
+eventlet.monkey_patch(os=False)
+
