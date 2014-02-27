@@ -15,11 +15,9 @@ from wsme import types as wtypes
 import wsmeext.pecan as wsme_pecan
 
 from bricks.api.controllers.v1 import base
-from bricks.api.controllers.v1 import chassis
-from bricks.api.controllers.v1 import driver
+from bricks.api.controllers.v1 import brickconfig
+from bricks.api.controllers.v1 import brick
 from bricks.api.controllers.v1 import link
-from bricks.api.controllers.v1 import node
-from bricks.api.controllers.v1 import port
 
 
 class MediaType(base.APIBase):
@@ -45,17 +43,11 @@ class V1(base.APIBase):
     links = [link.Link]
     "Links that point to a specific URL for this version and documentation"
 
-    chassis = [link.Link]
-    "Links to the chassis resource"
+    brickconfigs = [link.Link]
+    "Links to the brickconfig resource"
 
-    nodes = [link.Link]
-    "Links to the nodes resource"
-
-    ports = [link.Link]
-    "Links to the ports resource"
-
-    drivers = [link.Link]
-    "Links to the drivers resource"
+    bricks = [link.Link]
+    "Links to the brick resource"
 
     @classmethod
     def convert(self):
@@ -71,33 +63,20 @@ class V1(base.APIBase):
         ]
         v1.media_types = [MediaType('application/json',
                           'application/vnd.openstack.bricks.v1+json')]
-        v1.chassis = [link.Link.make_link('self', pecan.request.host_url,
-                                          'chassis', ''),
+
+        v1.brickconfigs = [link.Link.make_link('self', pecan.request.host_url,
+                                          'brickconfigs', ''),
                       link.Link.make_link('bookmark',
                                            pecan.request.host_url,
-                                           'chassis', '',
+                                           'brickconfigs', '',
                                            bookmark=True)
         ]
-        v1.nodes = [link.Link.make_link('self', pecan.request.host_url,
-                                        'nodes', ''),
+        v1.bricks = [link.Link.make_link('self', pecan.request.host_url,
+                                        'bricks', ''),
                     link.Link.make_link('bookmark',
                                         pecan.request.host_url,
-                                        'nodes', '',
+                                        'bricks', '',
                                         bookmark=True)
-        ]
-        v1.ports = [link.Link.make_link('self', pecan.request.host_url,
-                                        'ports', ''),
-                    link.Link.make_link('bookmark',
-                                        pecan.request.host_url,
-                                        'ports', '',
-                                        bookmark=True)
-        ]
-        v1.drivers = [link.Link.make_link('self', pecan.request.host_url,
-                                          'drivers', ''),
-                      link.Link.make_link('bookmark',
-                                          pecan.request.host_url,
-                                          'drivers', '',
-                                          bookmark=True)
         ]
         return v1
 
@@ -105,10 +84,8 @@ class V1(base.APIBase):
 class Controller(rest.RestController):
     """Version 1 API controller root."""
 
-    nodes = node.NodesController()
-    ports = port.PortsController()
-    chassis = chassis.ChassisController()
-    drivers = driver.DriversController()
+    brickconfigs = brickconfig.BrickConfigController()
+    bricks = brick.BrickController()
 
     @wsme_pecan.wsexpose(V1)
     def get(self):
