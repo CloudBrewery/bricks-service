@@ -1,0 +1,7 @@
+[run]
+branch = True
+source = bricks
+omit = bricks/tests/*,bricks/openstack/*
+
+[report]
+ignore-errors = True
