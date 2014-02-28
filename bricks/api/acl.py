@@ -14,7 +14,7 @@ OPT_GROUP_NAME = 'keystone_authtoken'
 def register_opts(conf):
     """Register keystoneclient middleware options
 
-    :param conf: Ironic settings.
+    :param conf: Bricks settings.
     """
     conf.register_opts(keystone_auth_token.opts, group=OPT_GROUP_NAME)
     keystone_auth_token.CONF = conf

@@ -17,7 +17,7 @@
 
 from wsme import types as wtypes
 
-from ironic.api.controllers.v1 import base
+from bricks.api.controllers.v1 import base
 
 
 class Link(base.APIBase):

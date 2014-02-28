@@ -5,7 +5,6 @@ Client side of the conductor RPC API.
 from oslo.config import cfg
 
 from bricks.common import exception
-from bricks.common import hash_ring as hash
 from bricks.conductor import manager
 from bricks.db import api as dbapi
 from bricks.objects import base as objects_base
@@ -35,12 +34,6 @@ class ConductorAPI(bricks.openstack.common.rpc.proxy.RpcProxy):
     def __init__(self, topic=None):
         if topic is None:
             topic = manager.MANAGER_TOPIC
-
-        # Initialize consistent hash ring
-        self.hash_rings = {}
-        d2c = dbapi.get_instance().get_active_driver_dict()
-        for driver in d2c.keys():
-            self.hash_rings[driver] = hash.HashRing(d2c[driver])
 
         super(ConductorAPI, self).__init__(
             topic=topic,

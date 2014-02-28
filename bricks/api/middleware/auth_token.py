@@ -1,6 +1,6 @@
 from keystoneclient.middleware import auth_token
 
-from .common import utils
+from bricks.common import utils
 
 
 class AuthTokenMiddleware(auth_token.AuthProtocol):

@@ -2,23 +2,16 @@
 
 """SQLAlchemy storage backend."""
 
-import collections
-import datetime
-
 from oslo.config import cfg
-from sqlalchemy.orm.exc import NoResultFound
 
 from bricks.common import exception
-from bricks.common import states
 from bricks.common import utils
-from bricks.db import api
-from bricks.db.sqlalchemy import models
 from bricks import objects
-from bricks.openstack.common.db import exception as db_exc
+
+from bricks.db.sqlalchemy import models
 from bricks.openstack.common.db.sqlalchemy import session as db_session
 from bricks.openstack.common.db.sqlalchemy import utils as db_utils
 from bricks.openstack.common import log
-from bricks.openstack.common import timeutils
 
 CONF = cfg.CONF
 CONF.import_opt('connection',
@@ -90,51 +83,6 @@ def add_filter_by_many_identities(query, model, values):
         raise exception.InvalidIdentity(identity=value)
 
 
-def add_port_filter(query, value):
-    """Adds a port-specific filter to a query.
-
-    Filters results by address, if supplied value is a valid MAC
-    address. Otherwise attempts to filter results by identity.
-
-    :param query: Initial query to add filter to.
-    :param value: Value for filtering results by.
-    :return: Modified query.
-    """
-    if utils.is_valid_mac(value):
-        return query.filter_by(address=value)
-    else:
-        return add_identity_filter(query, value)
-
-
-def add_port_filter_by_node(query, value):
-    if utils.is_int_like(value):
-        return query.filter_by(node_id=value)
-    else:
-        query = query.join(models.Node,
-                models.Port.node_id == models.Node.id)
-        return query.filter(models.Node.uuid == value)
-
-
-def add_node_filter_by_chassis(query, value):
-    if utils.is_int_like(value):
-        return query.filter_by(chassis_id=value)
-    else:
-        query = query.join(models.Chassis,
-                models.Node.chassis_id == models.Chassis.id)
-        return query.filter(models.Chassis.uuid == value)
-
-
-def _check_port_change_forbidden(port, session):
-    node_id = port['node_id']
-    if node_id is not None:
-        query = model_query(models.Node, session=session)
-        query = query.filter_by(id=node_id)
-        node_ref = query.one()
-        if node_ref['reservation'] is not None:
-            raise exception.NodeLocked(node=node_id,
-                                       host=node_ref['reservation'])
-
-
 def _paginate_query(model, limit=None, marker=None, sort_key=None,
                     sort_dir=None, query=None):
     if not query:
@@ -147,62 +95,33 @@ def _paginate_query(model, limit=None, marker=None, sort_key=None,
     return query.all()
 
 
-def _check_node_already_locked(query, query_by):
-    no_reserv = None
-    locked_ref = query.filter(models.Node.reservation != no_reserv).first()
-    if locked_ref:
-        raise exception.NodeLocked(node=locked_ref[query_by],
-                                   host=locked_ref['reservation'])
-
-
-def _handle_node_lock_not_found(nodes, query, query_by):
-    refs = query.all()
-    existing = [ref[query_by] for ref in refs]
-    missing = set(nodes) - set(existing)
-    raise exception.NodeNotFound(node=missing.pop())
-
-
+from bricks.db import api
 class Connection(api.Connection):
     """SqlAlchemy connection."""
 
     def __init__(self):
         pass
 
-    def _add_nodes_filters(self, query, filters):
+    def _add_brick_filters(self, query, filters):
         if filters is None:
             filters = []
 
-        if 'chassis_uuid' in filters:
-            # get_chassis() to raise an exception if the chassis is not found
-            chassis_obj = self.get_chassis(filters['chassis_uuid'])
-            query = query.filter_by(chassis_id=chassis_obj.id)
-        if 'associated' in filters:
-            if filters['associated']:
-                query = query.filter(models.Node.instance_uuid != None)
-            else:
-                query = query.filter(models.Node.instance_uuid == None)
-        if 'reserved' in filters:
-            if filters['reserved']:
-                query = query.filter(models.Node.reservation != None)
-            else:
-                query = query.filter(models.Node.reservation == None)
-        if 'maintenance' in filters:
-            query = query.filter_by(maintenance=filters['maintenance'])
-        if 'driver' in filters:
-            query = query.filter_by(driver=filters['driver'])
+        if 'brickconfig_uuid' in filters:
+            query = query.filter_by(brickconfig_uuid=filters['brickconfig_uuid'])
+        if 'instance_id' in filters:
+            query = query.filter_by(instance_id=filters['instance_id'])
+        if 'status' in filters:
+            query = query.filter_by(status=filters['status'])
 
         return query
 
-    def get_nodeinfo_list(self, columns=None, filters=None, limit=None,
-                          marker=None, sort_key=None, sort_dir=None):
-        # list-ify columns default values because it is bad form
-        # to include a mutable list in function definitions.
-        if columns is None:
-            columns = [models.Node.id]
-        else:
-            columns = [getattr(models.Node, c) for c in columns]
-
-        query = model_query(*columns, base_model=models.Node)
-        query = self._add_nodes_filters(query, filters)
-        return _paginate_query(models.Node, limit, marker,
+    @objects.objectify(objects.Brick)
+    def get_brick_list(self, filters=None, limit=None, marker=None,
+                      sort_key=None, sort_dir=None):
+        import pdb; pdb.set_trace()
+        query = model_query(models.Brick)
+        query = self._add_brick_filters(query, filters)
+        return _paginate_query(models.Brick, limit, marker,
                                sort_key, sort_dir, query)
+
+

@@ -67,4 +67,3 @@ class VersionSelectorApplication(object):
 
     def __call__(self, environ, start_response):
         return self.v1(environ, start_response)
-

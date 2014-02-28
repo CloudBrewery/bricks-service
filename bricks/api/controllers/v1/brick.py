@@ -1,5 +1,4 @@
 import jsonpatch
-import six
 
 import pecan
 from pecan import rest
@@ -11,7 +10,6 @@ import wsmeext.pecan as wsme_pecan
 from bricks.api.controllers.v1 import base
 from bricks.api.controllers.v1 import collection
 from bricks.api.controllers.v1 import link
-from bricks.api.controllers.v1 import node
 from bricks.api.controllers.v1 import types
 from bricks.api.controllers.v1 import utils as api_utils
 from bricks.common import exception
@@ -35,13 +33,10 @@ class Brick(base.APIBase):
     """
 
     uuid = types.uuid
-    "The UUID of the brick"
-
     brickconfig_uuid = types.uuid
-    "The UUID of the brickconfig used"
-
+    deployed_at = wtypes.datetime
     instance_id = wtypes.text
-
+    status = wtypes.text
     configuration = {wtypes.text: types.MultiType(wtypes.text)}
 
     links = [link.Link]
@@ -94,7 +89,8 @@ class BrickController(rest.RestController):
         'detail': ['GET'],
     }
 
-    def _get_brick_collection(self, marker, limit, sort_key, sort_dir,
+    def _get_brick_collection(self, brickconfig_uuid, instance_id, status,
+                              marker, limit, sort_key, sort_dir,
                               expand=False, resource_url=None):
         limit = api_utils.validate_limit(limit)
         sort_dir = api_utils.validate_sort_dir(sort_dir)
@@ -102,9 +98,17 @@ class BrickController(rest.RestController):
         if marker:
             marker_obj = objects.Brick.get_by_uuid(pecan.request.context,
                                                    marker)
-        bricks = pecan.request.dbapi.get_brick_list(limit, marker_obj,
-                                                    sort_key=sort_key,
-                                                    sort_dir=sort_dir)
+        filters = {}
+        if brickconfig_uuid:
+            filters['brickconfig_uuid'] = brickconfig_uuid
+        if instance_id:
+            filters['instance_id'] = instance_id
+        if status:
+            filters['status'] = status
+
+        bricks = pecan.request.dbapi.get_brick_list(
+            filters, limit, marker_obj, sort_key=sort_key,
+            sort_dir=sort_dir)
 
         return BricksCollection.convert_with_links(bricks, limit,
                                                    url=resource_url,
@@ -112,17 +116,23 @@ class BrickController(rest.RestController):
                                                    sort_key=sort_key,
                                                    sort_dir=sort_dir)
 
-    @wsme_pecan.wsexpose(BricksCollection, types.uuid,
-                         int, wtypes.text, wtypes.text)
-    def get_all(self, marker=None, limit=None, sort_key='id', sort_dir='asc'):
+    @wsme_pecan.wsexpose(BricksCollection, types.uuid, wtypes.text,
+                         wtypes.text, types.uuid, int, wtypes.text, wtypes.text)
+    def get_all(self, brickconfig_uuid=None, instance_id=None, status=None,
+                marker=None, limit=None, sort_key='id', sort_dir='asc'):
         """Retrieve a list of bricks.
 
+        :param brickconfig_uuid:
+        :param instance_id:
+        :param status:
         :param marker: pagination marker for large data sets.
         :param limit: maximum number of resources to return in a single result.
         :param sort_key: column to sort results by. Default: id.
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
         """
-        return self._get_brick_collection(marker, limit, sort_key, sort_dir)
+        return self._get_brick_collection(brickconfig_uuid, instance_id,
+                                          status, marker, limit, sort_key,
+                                          sort_dir)
 
     @wsme_pecan.wsexpose(BricksCollection, types.uuid, int,
                          wtypes.text, wtypes.text)
@@ -197,5 +207,4 @@ class BrickController(rest.RestController):
 
         :param brick_uuid: UUID of a brick.
         """
-
         pecan.request.dbapi.destroy_brick(brick_uuid)
