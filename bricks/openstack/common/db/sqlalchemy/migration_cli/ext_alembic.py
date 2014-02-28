@@ -40,7 +40,6 @@ class AlembicExtension(ext_base.MigrationExtensionBase):
         repo_path = migration_config.get('alembic_repo_path')
         if repo_path:
             self.config.set_main_option('script_location', repo_path)
-        self.db_url = migration_config['db_url']
 
     def upgrade(self, version):
         return alembic.command.upgrade(self.config, version or 'head')
@@ -51,7 +50,7 @@ class AlembicExtension(ext_base.MigrationExtensionBase):
         return alembic.command.downgrade(self.config, version)
 
     def version(self):
-        engine = db_session.create_engine(self.db_url)
+        engine = db_session.get_engine()
         with engine.connect() as conn:
             context = alembic_migration.MigrationContext.configure(conn)
             return context.get_current_revision()

@@ -1,3 +1,5 @@
+# vim: tabstop=4 shiftwidth=4 softtabstop=4
+
 # Copyright 2011 OpenStack Foundation.
 # All Rights Reserved.
 #
@@ -17,8 +19,6 @@
 System-level utilities and helper functions.
 """
 
-import errno
-import logging as stdlib_logging
 import os
 import random
 import shlex
@@ -26,7 +26,6 @@ import signal
 
 from eventlet.green import subprocess
 from eventlet import greenthread
-import six
 
 from bricks.openstack.common.gettextutils import _
 from bricks.openstack.common import log as logging
@@ -55,18 +54,11 @@ class ProcessExecutionError(Exception):
         self.description = description
 
         if description is None:
-            description = _("Unexpected error while running command.")
+            description = "Unexpected error while running command."
         if exit_code is None:
             exit_code = '-'
-        message = _('%(description)s\n'
-                    'Command: %(cmd)s\n'
-                    'Exit code: %(exit_code)s\n'
-                    'Stdout: %(stdout)r\n'
-                    'Stderr: %(stderr)r') % {'description': description,
-                                             'cmd': cmd,
-                                             'exit_code': exit_code,
-                                             'stdout': stdout,
-                                             'stderr': stderr}
+        message = ("%s\nCommand: %s\nExit code: %s\nStdout: %r\nStderr: %r"
+                   % (description, cmd, exit_code, stdout, stderr))
         super(ProcessExecutionError, self).__init__(message)
 
 
@@ -82,14 +74,14 @@ def _subprocess_setup():
 
 
 def execute(*cmd, **kwargs):
-    """Helper method to shell out and execute a command through subprocess.
-
-    Allows optional retry.
+    """
+    Helper method to shell out and execute a command through subprocess with
+    optional retry.
 
     :param cmd:             Passed to subprocess.Popen.
     :type cmd:              string
     :param process_input:   Send to opened process.
-    :type process_input:    string
+    :type proces_input:     string
     :param check_exit_code: Single bool, int, or list of allowed exit
                             codes.  Defaults to [0].  Raise
                             :class:`ProcessExecutionError` unless
@@ -110,9 +102,6 @@ def execute(*cmd, **kwargs):
     :param shell:           whether or not there should be a shell used to
                             execute this command. Defaults to false.
     :type shell:            boolean
-    :param loglevel:        log level for execute commands.
-    :type loglevel:         int.  (Should be stdlib_logging.DEBUG or
-                            stdlib_logging.INFO)
     :returns:               (stdout, stderr) from process execution
     :raises:                :class:`UnknownArgumentError` on
                             receiving unknown arguments
@@ -127,7 +116,6 @@ def execute(*cmd, **kwargs):
     run_as_root = kwargs.pop('run_as_root', False)
     root_helper = kwargs.pop('root_helper', '')
     shell = kwargs.pop('shell', False)
-    loglevel = kwargs.pop('loglevel', stdlib_logging.DEBUG)
 
     if isinstance(check_exit_code, bool):
         ignore_exit_code = not check_exit_code
@@ -139,11 +127,11 @@ def execute(*cmd, **kwargs):
         raise UnknownArgumentError(_('Got unknown keyword args '
                                      'to utils.execute: %r') % kwargs)
 
-    if run_as_root and hasattr(os, 'geteuid') and os.geteuid() != 0:
+    if run_as_root and os.geteuid() != 0:
         if not root_helper:
             raise NoRootWrapSpecified(
-                message=_('Command requested root, but did not '
-                          'specify a root helper.'))
+                message=('Command requested root, but did not specify a root '
+                         'helper.'))
         cmd = shlex.split(root_helper) + list(cmd)
 
     cmd = map(str, cmd)
@@ -151,8 +139,7 @@ def execute(*cmd, **kwargs):
     while attempts > 0:
         attempts -= 1
         try:
-            LOG.log(loglevel, 'Running cmd (subprocess): %s',
-                    ' '.join(cmd))
+            LOG.debug(_('Running cmd (subprocess): %s'), ' '.join(cmd))
             _PIPE = subprocess.PIPE  # pylint: disable=E1101
 
             if os.name == 'nt':
@@ -170,34 +157,26 @@ def execute(*cmd, **kwargs):
                                    preexec_fn=preexec_fn,
                                    shell=shell)
             result = None
-            for _i in six.moves.range(20):
-                # NOTE(russellb) 20 is an arbitrary number of retries to
-                # prevent any chance of looping forever here.
-                try:
-                    if process_input is not None:
-                        result = obj.communicate(process_input)
-                    else:
-                        result = obj.communicate()
-                except OSError as e:
-                    if e.errno in (errno.EAGAIN, errno.EINTR):
-                        continue
-                    raise
-                break
+            if process_input is not None:
+                result = obj.communicate(process_input)
+            else:
+                result = obj.communicate()
             obj.stdin.close()  # pylint: disable=E1101
             _returncode = obj.returncode  # pylint: disable=E1101
-            LOG.log(loglevel, 'Result was %s' % _returncode)
-            if not ignore_exit_code and _returncode not in check_exit_code:
-                (stdout, stderr) = result
-                raise ProcessExecutionError(exit_code=_returncode,
-                                            stdout=stdout,
-                                            stderr=stderr,
-                                            cmd=' '.join(cmd))
+            if _returncode:
+                LOG.debug(_('Result was %s') % _returncode)
+                if not ignore_exit_code and _returncode not in check_exit_code:
+                    (stdout, stderr) = result
+                    raise ProcessExecutionError(exit_code=_returncode,
+                                                stdout=stdout,
+                                                stderr=stderr,
+                                                cmd=' '.join(cmd))
             return result
         except ProcessExecutionError:
             if not attempts:
                 raise
             else:
-                LOG.log(loglevel, '%r failed. Retrying.', cmd)
+                LOG.debug(_('%r failed. Retrying.'), cmd)
                 if delay_on_retry:
                     greenthread.sleep(random.randint(20, 200) / 100.0)
         finally:
@@ -208,7 +187,8 @@ def execute(*cmd, **kwargs):
 
 
 def trycmd(*args, **kwargs):
-    """A wrapper around execute() to more easily handle warnings and errors.
+    """
+    A wrapper around execute() to more easily handle warnings and errors.
 
     Returns an (out, err) tuple of strings containing the output of
     the command's stdout and stderr.  If 'err' is not empty then the
@@ -223,7 +203,7 @@ def trycmd(*args, **kwargs):
     try:
         out, err = execute(*args, **kwargs)
         failed = False
-    except ProcessExecutionError as exn:
+    except ProcessExecutionError, exn:
         out, err = '', str(exn)
         failed = True
 
@@ -236,7 +216,7 @@ def trycmd(*args, **kwargs):
 
 def ssh_execute(ssh, cmd, process_input=None,
                 addl_env=None, check_exit_code=True):
-    LOG.debug('Running cmd (SSH): %s', cmd)
+    LOG.debug(_('Running cmd (SSH): %s'), cmd)
     if addl_env:
         raise InvalidArgumentError(_('Environment not supported over SSH'))
 
@@ -257,7 +237,7 @@ def ssh_execute(ssh, cmd, process_input=None,
 
     # exit_status == -1 if no exit code was returned
     if exit_status != -1:
-        LOG.debug('Result was %s' % exit_status)
+        LOG.debug(_('Result was %s') % exit_status)
         if check_exit_code and exit_status != 0:
             raise ProcessExecutionError(exit_code=exit_status,
                                         stdout=stdout,

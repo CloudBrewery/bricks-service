@@ -1,3 +1,5 @@
+# vim: tabstop=4 shiftwidth=4 softtabstop=4
+
 # Copyright 2012 Red Hat, Inc.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -11,10 +13,10 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-import threading
 
-import eventlet
+from eventlet import greenlet
 from eventlet import greenpool
+from eventlet import greenthread
 
 from bricks.openstack.common import log as logging
 from bricks.openstack.common import loopingcall
@@ -24,7 +26,7 @@ LOG = logging.getLogger(__name__)
 
 
 def _thread_done(gt, *args, **kwargs):
-    """Callback function to be passed to GreenThread.link() when we spawn()
+    """ Callback function to be passed to GreenThread.link() when we spawn()
     Calls the :class:`ThreadGroup` to notify if.
 
     """
@@ -32,7 +34,7 @@ def _thread_done(gt, *args, **kwargs):
 
 
 class Thread(object):
-    """Wrapper around a greenthread, that holds a reference to the
+    """ Wrapper around a greenthread, that holds a reference to the
     :class:`ThreadGroup`. The Thread will notify the :class:`ThreadGroup` when
     it has done so it can be removed from the threads list.
     """
@@ -46,12 +48,9 @@ class Thread(object):
     def wait(self):
         return self.thread.wait()
 
-    def link(self, func, *args, **kwargs):
-        self.thread.link(func, *args, **kwargs)
-
 
 class ThreadGroup(object):
-    """The point of the ThreadGroup class is to:
+    """ The point of the ThreadGroup classis to:
 
     * keep track of timers and greenthreads (making it easier to stop them
       when need be).
@@ -80,17 +79,13 @@ class ThreadGroup(object):
         gt = self.pool.spawn(callback, *args, **kwargs)
         th = Thread(gt, self)
         self.threads.append(th)
-        return th
 
     def thread_done(self, thread):
         self.threads.remove(thread)
 
     def stop(self):
-        current = threading.current_thread()
-
-        # Iterate over a copy of self.threads so thread_done doesn't
-        # modify the list while we're iterating
-        for x in self.threads[:]:
+        current = greenthread.getcurrent()
+        for x in self.threads:
             if x is current:
                 # don't kill the current thread.
                 continue
@@ -110,20 +105,17 @@ class ThreadGroup(object):
         for x in self.timers:
             try:
                 x.wait()
-            except eventlet.greenlet.GreenletExit:
+            except greenlet.GreenletExit:
                 pass
             except Exception as ex:
                 LOG.exception(ex)
-        current = threading.current_thread()
-
-        # Iterate over a copy of self.threads so thread_done doesn't
-        # modify the list while we're iterating
-        for x in self.threads[:]:
+        current = greenthread.getcurrent()
+        for x in self.threads:
             if x is current:
                 continue
             try:
                 x.wait()
-            except eventlet.greenlet.GreenletExit:
+            except greenlet.GreenletExit:
                 pass
             except Exception as ex:
                 LOG.exception(ex)

@@ -19,7 +19,7 @@ import uuid
 from oslo.config import cfg
 
 from bricks.openstack.common import context
-from bricks.openstack.common.gettextutils import _, _LE
+from bricks.openstack.common.gettextutils import _  # noqa
 from bricks.openstack.common import importutils
 from bricks.openstack.common import jsonutils
 from bricks.openstack.common import log as logging
@@ -142,9 +142,9 @@ def notify(context, publisher_id, event_type, priority, payload):
         try:
             driver.notify(context, msg)
         except Exception as e:
-            LOG.exception(_LE("Problem '%(e)s' attempting to "
-                              "send to notification system. "
-                              "Payload=%(payload)s")
+            LOG.exception(_("Problem '%(e)s' attempting to "
+                            "send to notification system. "
+                            "Payload=%(payload)s")
                           % dict(e=e, payload=payload))
 
 
@@ -161,8 +161,8 @@ def _get_drivers():
                 driver = importutils.import_module(notification_driver)
                 _drivers[notification_driver] = driver
             except ImportError:
-                LOG.exception(_LE("Failed to load notifier %s. "
-                                  "These notifications will not be sent.") %
+                LOG.exception(_("Failed to load notifier %s. "
+                                "These notifications will not be sent.") %
                               notification_driver)
     return _drivers.values()
 

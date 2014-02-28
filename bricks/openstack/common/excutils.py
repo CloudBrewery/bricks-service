@@ -1,3 +1,5 @@
+# vim: tabstop=4 shiftwidth=4 softtabstop=4
+
 # Copyright 2011 OpenStack Foundation.
 # Copyright 2012, Red Hat, Inc.
 #
@@ -24,7 +26,7 @@ import traceback
 
 import six
 
-from bricks.openstack.common.gettextutils import _LE
+from bricks.openstack.common.gettextutils import _  # noqa
 
 
 class save_and_reraise_exception(object):
@@ -42,13 +44,13 @@ class save_and_reraise_exception(object):
 
     In some cases the caller may not want to re-raise the exception, and
     for those circumstances this context provides a reraise flag that
-    can be used to suppress the exception.  For example::
+    can be used to suppress the exception.  For example:
 
-      except Exception:
-          with save_and_reraise_exception() as ctxt:
-              decide_if_need_reraise()
-              if not should_be_reraised:
-                  ctxt.reraise = False
+    except Exception:
+        with save_and_reraise_exception() as ctxt:
+            decide_if_need_reraise()
+            if not should_be_reraised:
+                ctxt.reraise = False
     """
     def __init__(self):
         self.reraise = True
@@ -59,7 +61,7 @@ class save_and_reraise_exception(object):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type is not None:
-            logging.error(_LE('Original exception being dropped: %s'),
+            logging.error(_('Original exception being dropped: %s'),
                           traceback.format_exception(self.type_,
                                                      self.value,
                                                      self.tb))
@@ -88,8 +90,8 @@ def forever_retry_uncaught_exceptions(infunc):
                 if (cur_time - last_log_time > 60 or
                         this_exc_message != last_exc_message):
                     logging.exception(
-                        _LE('Unexpected exception occurred %d time(s)... '
-                            'retrying.') % exc_count)
+                        _('Unexpected exception occurred %d time(s)... '
+                          'retrying.') % exc_count)
                     last_log_time = cur_time
                     last_exc_message = this_exc_message
                     exc_count = 0

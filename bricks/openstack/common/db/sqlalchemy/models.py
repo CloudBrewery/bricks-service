@@ -26,6 +26,7 @@ from sqlalchemy import Column, Integer
 from sqlalchemy import DateTime
 from sqlalchemy.orm import object_mapper
 
+from bricks.openstack.common.db.sqlalchemy import session as sa
 from bricks.openstack.common import timeutils
 
 
@@ -33,9 +34,10 @@ class ModelBase(object):
     """Base class for models."""
     __table_initialized__ = False
 
-    def save(self, session):
+    def save(self, session=None):
         """Save this object."""
-
+        if not session:
+            session = sa.get_session()
         # NOTE(boris-42): This part of code should be look like:
         #                       session.add(self)
         #                       session.flush()
@@ -108,7 +110,7 @@ class SoftDeleteMixin(object):
     deleted_at = Column(DateTime)
     deleted = Column(Integer, default=0)
 
-    def soft_delete(self, session):
+    def soft_delete(self, session=None):
         """Mark this object as deleted."""
         self.deleted = self.id
         self.deleted_at = timeutils.utcnow()

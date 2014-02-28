@@ -1,3 +1,5 @@
+# vim: tabstop=4 shiftwidth=4 softtabstop=4
+
 # Copyright 2013 IBM Corp.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -17,7 +19,7 @@ import ssl
 
 from oslo.config import cfg
 
-from bricks.openstack.common.gettextutils import _
+from bricks.openstack.common.gettextutils import _  # noqa
 
 
 ssl_opts = [

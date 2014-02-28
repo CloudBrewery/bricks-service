@@ -18,7 +18,7 @@
 from oslo.config import cfg
 
 from bricks.openstack.common import context as req_context
-from bricks.openstack.common.gettextutils import _LE
+from bricks.openstack.common.gettextutils import _  # noqa
 from bricks.openstack.common import log as logging
 from bricks.openstack.common import rpc
 
@@ -48,6 +48,6 @@ def notify(context, message):
         try:
             rpc.notify(context, topic, message, envelope=True)
         except Exception:
-            LOG.exception(_LE("Could not send notification to %(topic)s. "
-                              "Payload=%(message)s"),
+            LOG.exception(_("Could not send notification to %(topic)s. "
+                            "Payload=%(message)s"),
                           {"topic": topic, "message": message})

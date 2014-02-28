@@ -22,7 +22,7 @@ import json
 
 from oslo.config import cfg
 
-from bricks.openstack.common.gettextutils import _LW
+from bricks.openstack.common.gettextutils import _
 from bricks.openstack.common import log as logging
 from bricks.openstack.common.rpc import matchmaker as mm
 
@@ -72,8 +72,8 @@ class RoundRobinRingExchange(RingExchange):
     def run(self, key):
         if not self._ring_has(key):
             LOG.warn(
-                _LW("No key defining hosts for topic '%s', "
-                    "see ringfile") % (key, )
+                _("No key defining hosts for topic '%s', "
+                  "see ringfile") % (key, )
             )
             return []
         host = next(self.ring0[key])
@@ -90,8 +90,8 @@ class FanoutRingExchange(RingExchange):
         nkey = key.split('fanout~')[1:][0]
         if not self._ring_has(nkey):
             LOG.warn(
-                _LW("No key defining hosts for topic '%s', "
-                    "see ringfile") % (nkey, )
+                _("No key defining hosts for topic '%s', "
+                  "see ringfile") % (nkey, )
             )
             return []
         return map(lambda x: (key + '.' + x, x), self.ring[nkey])

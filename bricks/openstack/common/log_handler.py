@@ -1,3 +1,5 @@
+# vim: tabstop=4 shiftwidth=4 softtabstop=4
+
 # Copyright 2013 IBM Corp.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -11,12 +13,11 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-
 import logging
 
-from oslo.config import cfg
-
 from bricks.openstack.common import notifier
+
+from oslo.config import cfg
 
 
 class PublishErrorsHandler(logging.Handler):
@@ -27,4 +28,4 @@ class PublishErrorsHandler(logging.Handler):
         notifier.api.notify(None, 'error.publisher',
                             'error_notification',
                             notifier.api.ERROR,
-                            dict(error=record.getMessage()))
+                            dict(error=record.msg))
