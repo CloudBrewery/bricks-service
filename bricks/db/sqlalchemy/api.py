@@ -3,9 +3,11 @@
 """SQLAlchemy storage backend."""
 
 from oslo.config import cfg
+from sqlalchemy.orm.exc import NoResultFound
 
 from bricks.common import exception
 from bricks.common import utils
+from bricks.common import states
 from bricks import objects
 
 from bricks.db.sqlalchemy import models
@@ -95,7 +97,29 @@ def _paginate_query(model, limit=None, marker=None, sort_key=None,
     return query.all()
 
 
+def _check_brickconfig_in_use(query, query_by):
+    no_reserv = None
+    locked_ref = query.filter(models.Node.reservation != no_reserv).first()
+    if locked_ref:
+        raise exception.NodeLocked(node=locked_ref[query_by],
+                                   host=locked_ref['reservation'])
+
+def _check_brickconfig_in_use(brickconfig, session):
+    brickconfig_uuid = brickconfig['uuid']
+    if brickconfig_uuid is not None:
+        query = model_query(models.Brick, session=session)
+        query = query.filter_by(brickconfig_uuid=brickconfig_uuid)
+
+        try:
+            brick_ref = query.one()
+            raise exception.BrickConfigInUse(brick=brick_ref)
+        except NoResultFound:
+            pass
+
+
 from bricks.db import api
+
+
 class Connection(api.Connection):
     """SqlAlchemy connection."""
 
@@ -104,10 +128,11 @@ class Connection(api.Connection):
 
     def _add_brick_filters(self, query, filters):
         if filters is None:
-            filters = []
+            filters = {}
 
         if 'brickconfig_uuid' in filters:
-            query = query.filter_by(brickconfig_uuid=filters['brickconfig_uuid'])
+            query = query.filter_by(
+                brickconfig_uuid=filters['brickconfig_uuid'])
         if 'instance_id' in filters:
             query = query.filter_by(instance_id=filters['instance_id'])
         if 'status' in filters:
@@ -115,13 +140,132 @@ class Connection(api.Connection):
 
         return query
 
+    def _add_brickconfig_filters(self, query, filters):
+        if filters is None:
+            filters = {}
+
+        if 'tag' in filters:
+            query = query.filter_by(tag=filters['tag'])
+        if 'is_public' in filters:
+            query = query.filter_by(tag=filters['is_public'])
+
+        return query
+
     @objects.objectify(objects.Brick)
     def get_brick_list(self, filters=None, limit=None, marker=None,
-                      sort_key=None, sort_dir=None):
-        import pdb; pdb.set_trace()
+                       sort_key=None, sort_dir=None):
         query = model_query(models.Brick)
         query = self._add_brick_filters(query, filters)
         return _paginate_query(models.Brick, limit, marker,
                                sort_key, sort_dir, query)
+
+    @objects.objectify(objects.Brick)
+    def create_brick(self, values):
+        # ensure defaults are present for new bricks
+        if not values.get('uuid'):
+            values['uuid'] = utils.generate_uuid()
+        if not values.get('status'):
+            values['status'] = states.NOSTATE
+
+        brick = models.Brick()
+        brick.update(values)
+        brick.save()
+        return brick
+
+    @objects.objectify(objects.Brick)
+    def get_brick(self, brick_id):
+        query = model_query(models.Brick)
+        query = add_identity_filter(query, brick_id)
+
+        try:
+            return query.one()
+        except NoResultFound:
+            raise exception.BrickNotFound(brick=brick_id)
+
+    @objects.objectify(objects.Brick)
+    def update_brick(self, brick_id, values):
+        session = get_session()
+        with session.begin():
+            query = model_query(models.Brick, session=session)
+            query = add_identity_filter(query, brick_id)
+
+            count = query.update(values)
+            if count != 1:
+                raise exception.BrickNotFound(brick=brick_id)
+            ref = query.one()
+        return ref
+
+    def destroy_brick(self, brick_id):
+        session = get_session()
+        with session.begin():
+            query = model_query(models.Brick, session=session)
+            query = add_identity_filter(query, brick_id)
+
+            try:
+                ref = query.one()
+            except NoResultFound:
+                raise exception.BrickNotFound(brick=brick_id)
+
+            query.delete()
+
+
+    @objects.objectify(objects.BrickConfig)
+    def get_brickconfig_list(self, filters=None, limit=None, marker=None,
+                              sort_key=None, sort_dir=None):
+        query = model_query(models.BrickConfig)
+        query = self._add_brickconfig_filters(query, filters)
+        return _paginate_query(models.BrickConfig, limit, marker, sort_key,
+                               sort_dir, query)
+
+    @objects.objectify(objects.BrickConfig)
+    def create_brickconfig(self, values):
+        if not values.get('uuid'):
+            values['uuid'] = utils.generate_uuid()
+        if not values.get('version'):
+            values['version'] = '1.0'
+
+        bc = models.BrickConfig()
+        bc.update(values)
+        bc.save()
+        return bc
+
+    @objects.objectify(objects.BrickConfig)
+    def get_brickconfig(self, brickconfig_id):
+        query = model_query(models.BrickConfig)
+        query = add_identity_filter(query, brickconfig_id)
+
+        try:
+            return query.one()
+        except NoResultFound:
+            raise exception.BrickConfigNotFound(brickconfig=brickconfig_id)
+
+    @objects.objectify(objects.BrickConfig)
+    def update_brickconfig(self, brickconfig_id, values):
+        session = get_session()
+        with session.begin():
+            query = model_query(models.BrickConfig, session=session)
+            query = add_identity_filter(query, brickconfig_id)
+
+            count = query.update(values)
+            if count != 1:
+                raise exception.BrickConfigNotFound(brickconfig=brickconfig_id)
+            ref = query.one()
+        return ref
+
+
+    def destroy_brickconfig(self, brickconfig_id):
+        session = get_session()
+        with session.begin():
+            query = model_query(models.BrickConfig, session=session)
+            query = add_identity_filter(query, brickconfig_id)
+
+            try:
+                ref = query.one()
+            except NoResultFound:
+                raise exception.BrickConfigNotFound(brickconfig=brickconfig_id)
+
+            _check_brickconfig_in_use(ref, session)
+
+            query.delete()
 
 

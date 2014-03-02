@@ -167,3 +167,10 @@ class HTTPNotFound(NotFound):
 class ConfigNotFound(BricksException):
     message = _("Could not find config at %(path)s")
 
+
+class BrickNotFound(NotFound):
+    message = _("Coult not find brick %(brick)s")
+
+
+class BrickConfigNotFound(NotFound):
+    message = _("Coult not find brickconfig %(brickconfig)s")
