@@ -122,8 +122,8 @@ class BrickConfigController(rest.RestController):
     def __init__(self, from_nodes=False):
         self._from_nodes = from_nodes
 
-    def _get_brickconfigs_collection(self, marker, limit, sort_key,
-                                     sort_dir, expand=False,
+    def _get_brickconfigs_collection(self, tag, is_public, marker, limit,
+                                     sort_key, sort_dir, expand=False,
                                      resource_url=None):
 
         limit = api_utils.validate_limit(limit)
@@ -134,32 +134,44 @@ class BrickConfigController(rest.RestController):
             marker_obj = objects.BrickConfig.get_by_uuid(
                 pecan.request.context, marker)
 
-        brickconfigs = pecan.request.dbapi.get_brickconfigs_list(
-            limit, marker_obj, sort_key=sort_key, sort_dir=sort_dir)
+        filters = {}
+        if tag:
+            filters['tag'] = tag
+        if is_public:
+            filters['is_public'] = is_public
+
+        brickconfigs = pecan.request.dbapi.get_brickconfig_list(
+            filters, limit, marker_obj, sort_key=sort_key,
+            sort_dir=sort_dir)
 
         return BrickConfigCollection.convert_with_links(
             brickconfigs, limit, url=resource_url, expand=expand,
             sort_key=sort_key, sort_dir=sort_dir)
 
-    @wsme_pecan.wsexpose(BrickConfigCollection, types.uuid, int,
-                         wtypes.text, wtypes.text)
-    def get_all(self, marker=None, limit=None,
-                sort_key='id', sort_dir='asc'):
+    @wsme_pecan.wsexpose(BrickConfigCollection, wtypes.text, types.boolean,
+                         types.uuid, int, wtypes.text, wtypes.text)
+    def get_all(self, tag=None, is_public=None, marker=None,
+                limit=None, sort_key='id', sort_dir='asc'):
         """Retrieve a list of brickconfigs.
 
+        :param tag:
+        :param is_public:
         :param marker: pagination marker for large data sets.
         :param limit: maximum number of resources to return in a single result.
         :param sort_key: column to sort results by. Default: id.
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
         """
-        return self._get_brickconfigs_collection(marker, limit, sort_key,
-                                                 sort_dir)
+        return self._get_brickconfigs_collection(tag, is_public, marker,
+                                                 limit, sort_key, sort_dir)
 
-    @wsme_pecan.wsexpose(BrickConfigCollection, types.uuid, int,
-                         wtypes.text, wtypes.text)
-    def detail(self, marker=None, limit=None, sort_key='id', sort_dir='asc'):
+    @wsme_pecan.wsexpose(BrickConfigCollection, wtypes.text, types.boolean,
+                         types.uuid, int, wtypes.text, wtypes.text)
+    def detail(self, tag=None, is_public=None, marker=None, limit=None,
+               sort_key='id', sort_dir='asc'):
         """Retrieve a list of brickconfigs with detail.
 
+        :param tag:
+        :param is_public:
         :param marker: pagination marker for large data sets.
         :param limit: maximum number of resources to return in a single result.
         :param sort_key: column to sort results by. Default: id.
@@ -172,9 +184,9 @@ class BrickConfigController(rest.RestController):
 
         expand = True
         resource_url = '/'.join(['brickconfigs', 'detail'])
-        return self._get_brickconfigs_collection(marker, limit, sort_key,
-                                                 sort_dir, expand,
-                                                 resource_url)
+        return self._get_brickconfigs_collection(tag, is_public, marker,
+                                                 limit, sort_key, sort_dir,
+                                                 expand, resource_url)
 
     @wsme_pecan.wsexpose(BrickConfig, types.uuid)
     def get_one(self, brickconfig_uuid):
