@@ -119,8 +119,16 @@ class IncompatibleObjectVersion(BricksException):
     message = _('Version %(objver)s of %(objname)s is not supported')
 
 
+class UnsupportedObjectError(BricksException):
+    message = _('Unsupported object type %(objtype)s')
+
+
 class CatalogUnauthorized(BricksException):
     message = _("Unauthorised for keystone service catalog.")
+
+
+class OrphanedObjectError(BricksException):
+    message = _('Cannot call %(method)s on orphaned %(objtype)s object')
 
 
 class CatalogFailure(BricksException):
@@ -174,3 +182,5 @@ class BrickNotFound(NotFound):
 
 class BrickConfigNotFound(NotFound):
     message = _("Coult not find brickconfig %(brickconfig)s")
+
+
