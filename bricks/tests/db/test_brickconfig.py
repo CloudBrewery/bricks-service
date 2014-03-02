@@ -28,7 +28,8 @@ class DbBrickConfigTestCase(base.DbTestCase):
     def test_get_brickconfig_list(self):
         uuids = []
         for i in range(1, 6):
-            n = utils.get_test_brickconfig(id=i, uuid=bricks_utils.generate_uuid())
+            n = utils.get_test_brickconfig(id=i,
+                                           uuid=bricks_utils.generate_uuid())
             self.dbapi.create_brickconfig(n)
             uuids.append(six.text_type(n['uuid']))
         res = self.dbapi.get_brickconfig_list()
