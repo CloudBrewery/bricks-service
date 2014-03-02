@@ -1,3 +1,4 @@
+from datetime import datetime
 import jsonpatch
 
 import pecan
@@ -34,10 +35,10 @@ class Brick(base.APIBase):
 
     uuid = types.uuid
     brickconfig_uuid = types.uuid
-    deployed_at = wtypes.datetime
+    deployed_at = datetime
     instance_id = wtypes.text
     status = wtypes.text
-    configuration = {wtypes.text: types.MultiType(wtypes.text)}
+    configuration = {wtypes.text: wtypes.text}
 
     links = [link.Link]
     "A list containing a self link and associated brick links"
@@ -51,14 +52,20 @@ class Brick(base.APIBase):
     def convert_with_links(cls, rpc_brick, expand=True):
         brick = Brick(**rpc_brick.as_dict())
 
-        brick.links = [
-            link.Link.make_link('self',
-                                pecan.request.host_url,
-                                'bricks', brick.uuid),
-            link.Link.make_link('bookmark',
-                                pecan.request.host_url,
-                                'bricks', brick.uuid)
-        ]
+        if not expand:
+            brick.unset_fields_except(['uuid', 'brickconfig_uuid',
+                                       'deployed_at', 'instance_id',
+                                       'status'])
+        else:
+
+            brick.links = [
+                link.Link.make_link('self',
+                                    pecan.request.host_url,
+                                    'bricks', brick.uuid),
+                link.Link.make_link('bookmark',
+                                    pecan.request.host_url,
+                                    'bricks', brick.uuid)
+            ]
         return brick
 
 
@@ -130,13 +137,14 @@ class BrickController(rest.RestController):
         :param sort_key: column to sort results by. Default: id.
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
         """
-        return self._get_brick_collection(brickconfig_uuid, instance_id,
-                                          status, marker, limit, sort_key,
-                                          sort_dir)
+        return self._get_brick_collection(
+            brickconfig_uuid, instance_id, status, marker, limit, sort_key,
+            sort_dir)
 
-    @wsme_pecan.wsexpose(BricksCollection, types.uuid, int,
-                         wtypes.text, wtypes.text)
-    def detail(self, marker=None, limit=None, sort_key='id', sort_dir='asc'):
+    @wsme_pecan.wsexpose(BricksCollection, types.uuid, wtypes.text,
+                         wtypes.text, types.uuid, int, wtypes.text, wtypes.text)
+    def detail(self, brickconfig_uuid=None, instance_id=None, status=None,
+               marker=None, limit=None, sort_key='id', sort_dir='asc'):
         """Retrieve a list of bricks with detail.
 
         :param marker: pagination marker for large data sets.
@@ -151,8 +159,9 @@ class BrickController(rest.RestController):
 
         expand = True
         resource_url = '/'.join(['bricks', 'detail'])
-        return self._get_brick_collection(marker, limit, sort_key, sort_dir,
-                                          expand, resource_url)
+        return self._get_brick_collection(
+            brickconfig_uuid, instance_id, status, marker, limit, sort_key,
+            sort_dir, expand, resource_url)
 
     @wsme_pecan.wsexpose(Brick, types.uuid)
     def get_one(self, brick_uuid):
