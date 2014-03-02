@@ -69,7 +69,7 @@ class BricksCollection(collection.Collection):
     "A list containing Brick objects"
 
     def __init__(self, **kwargs):
-        self._type = 'brick'
+        self._type = 'bricks'
 
     @classmethod
     def convert_with_links(cls, brick, limit, url=None,
