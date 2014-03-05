@@ -24,7 +24,7 @@ CONF = cfg.CONF
 acl.register_opts(CONF)
 
 
-def get_service_url(service_type='baremetal', endpoint_type='internal'):
+def get_service_url(service_type='bricks', endpoint_type='internal'):
     """Wrapper for get service url from keystone service catalog."""
     auth_url = CONF.keystone_authtoken.auth_uri or ''
     api_v3 = CONF.keystone_authtoken.auth_version == 'v3.0' or \
