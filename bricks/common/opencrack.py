@@ -2,11 +2,23 @@ import json
 import requests
 
 from keystoneclient.v2_0 import client as keystone_client
+from novaclient.v1_1 import client as nova_client
 
 from bricks.common import keystone
 from bricks.openstack.common import log
 
 logger = log.getLogger(__name__)
+
+
+def build_nova_client(req_context):
+    c = nova_client.Client(req_context.auth_token.username,
+                           req_context.auth_token.id,
+                           project_id=req_context.auth_token.tenant_id,
+                           auth_url=keystone.get_service_url('compute'),
+                           insecure=False)
+    c.client.auth_token = req_context.auth_token
+    c.client.management_url = keystone.get_service_url('compute')
+    return c
 
 
 def build_keystone_client(token_id):
