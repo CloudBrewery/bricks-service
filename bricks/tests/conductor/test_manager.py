@@ -3,6 +3,7 @@ import time
 import mock
 from oslo.config import cfg
 
+from bricks.common import states
 from bricks.conductor import manager
 from bricks.db import api as dbapi
 from bricks.openstack.common import context
@@ -21,17 +22,34 @@ class ManagerTestCase(base.DbTestCase):
         self.dbapi = dbapi.get_instance()
 
     def test_brick_destroy_simple(self):
+        # TODO(thurloat): test brick destroying manager call
         pass
 
     def test_notify_completion_simple(self):
+        # TODO(thurloat): test completion manager call
         pass
 
     def test_assign_floating_ip_simple(self):
-        pass
+        brickconfig_dict = utils.get_test_brickconfig()
+        self.dbapi.create_brickconfig(brickconfig_dict)
+
+        brick_dict = utils.get_test_brick(status='borked')
+        brick = self.dbapi.create_brick(brick_dict)
+
+        self.service.start()
+        with mock.patch('bricks.conductor.utils._drive_floating_ip') \
+                as flop_action:
+            flop_action.return_value = None
+            self.service.assign_floating_ip(self.context, brick['uuid'],
+                                            '127.0.0.1')
+            self.service._worker_pool.waitall()
+            brick.refresh(self.context)
+            self.assertEqual(brick['status'], states.NETWORKED)
+            flop_action.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY)
 
     def test_brick_deploy_simple(self):
         brickconfig_dict = utils.get_test_brickconfig()
-        brickconfig = self.dbapi.create_brickconfig(brickconfig_dict)
+        self.dbapi.create_brickconfig(brickconfig_dict)
 
         brick_dict = utils.get_test_brick(instance_id=None)
         brick = self.dbapi.create_brick(brick_dict)
@@ -58,9 +76,6 @@ class ManagerTestCase(base.DbTestCase):
 
         self.assertIsNotNone(thread)
         func_mock.assert_called_once_with(*args, **kwargs)
-
-    # The tests below related to greenthread. We have they to assert our
-    # assumptions about greenthread behavior.
 
     def test__spawn_link_callback_added_during_execution(self):
         def func():

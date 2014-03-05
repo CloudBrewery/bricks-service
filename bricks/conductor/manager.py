@@ -92,16 +92,8 @@ class ConductorManager(service.PeriodicService):
         """Assign a floating IP address to a running instance, per
         automation.
         """
-        brick = self.dbapi.get_brick(brick_id)
-
-        action = {'addFloatingIp': {'address': floating_ip}}
-        action_url = '/servers/%s/action' % brick.instance_id
-
-        opencrack.api_request('compute',
-                              context.auth_token.id,
-                              context.auth_token.tenant_id,
-                              action_url,
-                              action)
+        self._spawn_worker(utils.assign_floating_ip_action, context,
+                           brick_id, floating_ip)
 
     @lockutils.synchronized(WORKER_SPAWN_lOCK, 'bricks-')
     def _spawn_worker(self, func, *args, **kwargs):

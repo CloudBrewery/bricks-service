@@ -4,6 +4,7 @@ import emails
 from emails.template import JinjaTemplate
 
 from bricks.common import opencrack
+from bricks.common import states
 from bricks.db import api as dbapi
 from bricks.openstack.common import log
 
@@ -148,6 +149,28 @@ def brick_destroy_action(req_context, brick_id):
     """"Destroy a brick!
     """
     pass
+
+
+def _drive_floating_ip(req_context, brick, floating_ip):
+    """Execute assigning the floating IP!
+    """
+
+    action = {'addFloatingIp': {'address': floating_ip}}
+    action_url = '/servers/%s/action' % brick.instance_id
+
+    opencrack.api_request('compute',
+                          req_context.auth_token.id,
+                          req_context.auth_token.tenant_id,
+                          action_url,
+                          action)
+
+
+def assign_floating_ip_action(req_context, brick_id, floating_ip):
+    db = dbapi.get_instance()
+    brick = db.get_brick(brick_id)
+    _drive_floating_ip(req_context, brick, floating_ip)
+    brick.status = states.NETWORKED
+    brick.save(req_context)
 
 
 def notify_completion(req_context, brick, brickconfig):
