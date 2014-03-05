@@ -13,18 +13,20 @@ class Brick(base.BricksObject):
         'uuid': utils.str_or_none,
         'brickconfig_uuid': utils.str_or_none,
 
-        'deployed_at': utils.datetime_or_none,
+        'deployed_at': utils.datetime_or_str_or_none,
         'instance_id': utils.str_or_none,
         # One of states. in states
         'status': utils.str_or_none,
 
         'configuration': utils.dict_or_none,
+        # {'flavour', 'keypair', 'network', ''}
         'deploy_log': utils.str_or_none,
     }
 
     @staticmethod
     def _from_db_object(brick, db_brick):
         """Converts a database entity to a formal object."""
+
         for field in brick.fields:
             brick[field] = db_brick[field]
 
