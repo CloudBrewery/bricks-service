@@ -13,6 +13,47 @@ LOG = log.getLogger(__name__)
 BRICKS_URL = 'https://dash-dev.clouda.ca/dockerstack/update'
 
 
+##
+# Actions
+def assign_floating_ip_action(req_context, brick_id, floating_ip):
+    """Action!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    """
+    db = dbapi.get_instance()
+    brick = db.get_brick(brick_id)
+    _drive_floating_ip(req_context, brick, floating_ip)
+    brick.status = states.NETWORKED
+    brick.save(req_context)
+
+
+def brick_deploy_action(req_context, brick_id):
+    """Deploy a brick task called from the manageer.
+
+    Args:
+        task_context:
+    """
+
+    db = dbapi.get_instance()
+    brick = db.get_brick(brick_id)
+    brickconfig = db.get_brickconfig(brick.brickconfig_uuid)
+
+    server_id = _deploy_nova_server(
+        req_context,
+        brick,
+        brickconfig)
+
+    # return an instance ID to assoc the brick
+    brick.instance_id = server_id
+    brick.save(req_context)
+
+
+def brick_destroy_action(req_context, brick_id):
+    """"Destroy a brick!
+    """
+    pass
+
+
+##
+# Action actions
 def _deploy_nova_server(req_context, brick, brickconfig):
     """Deploy the server using nova
     """
@@ -124,32 +165,6 @@ def prepare_instance_meta(req_context, brick, brickconfig):
     return meta
 
 
-def brick_deploy_action(req_context, brick_id):
-    """Deploy a brick task called from the manageer.
-
-    Args:
-        task_context:
-    """
-
-    db = dbapi.get_instance()
-    brick = db.get_brick(brick_id)
-    brickconfig = db.get_brickconfig(brick.brickconfig_uuid)
-
-    server_id = _deploy_nova_server(
-        req_context,
-        brick,
-        brickconfig)
-
-    # return an instance ID to assoc the brick
-    brick.instance_id = server_id
-    brick.save(req_context)
-
-
-def brick_destroy_action(req_context, brick_id):
-    """"Destroy a brick!
-    """
-    pass
-
 
 def _drive_floating_ip(req_context, brick, floating_ip):
     """Execute assigning the floating IP!
@@ -163,14 +178,6 @@ def _drive_floating_ip(req_context, brick, floating_ip):
                           req_context.auth_token.tenant_id,
                           action_url,
                           action)
-
-
-def assign_floating_ip_action(req_context, brick_id, floating_ip):
-    db = dbapi.get_instance()
-    brick = db.get_brick(brick_id)
-    _drive_floating_ip(req_context, brick, floating_ip)
-    brick.status = states.NETWORKED
-    brick.save(req_context)
 
 
 def notify_completion(req_context, brick, brickconfig):
