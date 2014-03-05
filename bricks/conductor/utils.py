@@ -12,11 +12,33 @@ LOG = log.getLogger(__name__)
 BRICKS_URL = 'https://dash-dev.clouda.ca/dockerstack/update'
 
 
-def deploy_nova_server(name, image, flavour, **kwargs):
+def _deploy_nova_server(req_context, brick, brickconfig):
     """Deploy the server using nova
     """
+
+    # Ubuntu ONLY, image is hard coded.
+    image = '8b20af24-1946-4fe5-a7c3-ad908c684712'
+
+    # Create our required security group if needed
+    sec_groups = ensure_secugirty_groups(req_context, brickconfig)
+    meta = prepare_instance_meta(req_context, brick, brickconfig)
+
+    nic = [{"net-id": brick.configuration['network'],
+            "v4-fixed-ip": ""}]
+
     nova_client = api.nova.novaclient(request)
-    server = nova_client.servers.create(name, image, flavour, **kwargs)
+    server = nova_client.servers.create(
+        brickconfig.name,
+        image,
+        brick.configuration['flavour'],
+        meta=meta,
+        userdata=get_userdata(),
+        config_drive=True,
+        disk_config='AUTO',
+        key_name=brick.configuration['keypair'],
+        nics=nic,
+        security_groups=sec_groups)
+
     return server.id
 
 
@@ -83,28 +105,10 @@ def brick_deploy_action(req_context, brick_id):
     brick = db.get_brick(brick_id)
     brickconfig = db.get_brickconfig(brick.brickconfig_uuid)
 
-    # Ubuntu ONLY, image is hard coded.
-    image = '8b20af24-1946-4fe5-a7c3-ad908c684712'
-
-    # Create our required security group if needed
-    sec_groups = ensure_secugirty_groups(req_context, brickconfig)
-    meta = prepare_instance_meta(req_context, brick, brickconfig)
-
-    nic = [{"net-id": brick.configuration['network'],
-            "v4-fixed-ip": ""}]
-
-    server_id = deploy_nova_server(
-        brickconfig.name,
-        image,
-        brick.configuration['flavour'],
-        meta=meta,
-        userdata=get_userdata(),
-        config_drive=True,
-        disk_config='AUTO',
-        key_name=brick.configuration['keypair'],
-        nics=nic,
-        security_groups=sec_groups)
-
+    server_id = _deploy_nova_server(
+        req_context,
+        brick,
+        brickconfig)
     # return an instance ID to assoc the brick?
     brick.instance_id = server_id
     brick.save(req_context)

@@ -38,13 +38,14 @@ class ManagerTestCase(base.DbTestCase):
 
         self.service.start()
 
-        with mock.patch('bricks.conductor.utils.deploy_nova_server') \
+        with mock.patch('bricks.conductor.utils._deploy_nova_server') \
                 as deploy:
             deploy.return_value = "asdf-1234"
             self.service.do_brick_deploy(self.context, brick['uuid'])
+            self.service._worker_pool.waitall()
             brick.refresh(self.context)
-            self.assertEqual(brick['instance_id'], 'asdf-123')
-            deploy.assert_called_once_with(mock.ANY, mock.ANY)
+            self.assertEqual(brick['instance_id'], 'asdf-1234')
+            deploy.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY)
 
     def test__spawn_worker(self):
         func_mock = mock.Mock()
