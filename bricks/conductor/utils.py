@@ -26,8 +26,8 @@ def _deploy_nova_server(req_context, brick, brickconfig):
     nic = [{"net-id": brick.configuration['network'],
             "v4-fixed-ip": ""}]
 
-    nova_client = api.nova.novaclient(request)
-    server = nova_client.servers.create(
+    novaclient = opencrack.build_nova_client(req_context)
+    server = novaclient.servers.create(
         brickconfig.name,
         image,
         brick.configuration['flavour'],
@@ -53,13 +53,37 @@ def ensure_secugirty_groups(req_context, brickconfig):
     """Ensure a security group is created or already exists for the user
     under the name, and make sure it has the correct ports open.
     """
-    return True
 
-    sec_groups = create_instance.assign_security_groups(
-        request,
-        override_name=config.get("name"),
-        port_list=config.get("ports")
-    )
+    g_id = []
+    exists = False
+
+    novaclient = opencrack.build_nova_client(req_context)
+    sec_groups = novaclient.security_groups.list()
+
+    for group in sec_groups:
+        if group.name == u"%s" % brickconfig.name:
+            exists = True
+            g_id.append(group.id)
+            break
+
+    if not exists:
+        # if it doesn't exist, create it and make sure all the ports are bound.
+        sec_group = novaclient.security_groups.create(
+            brickconfig.name,
+            "Auto-generated security group for %s" % brickconfig.name)
+
+        g_id.append(sec_group.id)
+
+        for port in brickconfig.ports:
+            novaclient.security_group_rules.create(
+                sec_group.id,
+                'tcp',
+                port,
+                port,
+                '0.0.0.0/0',
+                None)
+
+    return g_id
 
 
 def get_tgz_downloads(brickconfig):
@@ -73,6 +97,10 @@ def get_tgz_downloads(brickconfig):
 
 
 def prepare_instance_meta(req_context, brick, brickconfig):
+    """Prepares a set of metadata to get injected into an instance while the
+    deploy is happening so Dockerstack can initialize fully.
+
+    """
     tgz_download = get_tgz_downloads(brickconfig)
 
     meta = {
@@ -96,11 +124,12 @@ def prepare_instance_meta(req_context, brick, brickconfig):
 
 
 def brick_deploy_action(req_context, brick_id):
-    """Deploy a brick!
+    """Deploy a brick task called from the manageer.
 
     Args:
         task_context:
     """
+
     db = dbapi.get_instance()
     brick = db.get_brick(brick_id)
     brickconfig = db.get_brickconfig(brick.brickconfig_uuid)
@@ -109,7 +138,8 @@ def brick_deploy_action(req_context, brick_id):
         req_context,
         brick,
         brickconfig)
-    # return an instance ID to assoc the brick?
+
+    # return an instance ID to assoc the brick
     brick.instance_id = server_id
     brick.save(req_context)
 
