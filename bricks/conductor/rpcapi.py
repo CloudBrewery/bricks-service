@@ -4,9 +4,7 @@ Client side of the conductor RPC API.
 
 from oslo.config import cfg
 
-from bricks.common import exception
 from bricks.conductor import manager
-from bricks.db import api as dbapi
 from bricks.objects import base as objects_base
 import bricks.openstack.common.rpc.proxy
 
@@ -39,3 +37,25 @@ class ConductorAPI(bricks.openstack.common.rpc.proxy.RpcProxy):
             topic=topic,
             serializer=objects_base.BricksObjectSerializer(),
             default_version=self.RPC_API_VERSION)
+
+    def do_brick_deploy(self, context, brick_id, topic=None):
+        self.cast(context,
+                  self.make_msg('do_brick_deploy', brick_id=brick_id),
+                  topic=topic or self.topic)
+
+    def do_brick_destroy(self, context, brick_id, topic=None):
+        self.cast(context,
+                  self.make_msg('do_brick_destroy', brick_id=brick_id),
+                  topic=topic or self.topic)
+
+    def notify_completion(self, context, brick_id, topic=None):
+        self.cast(context,
+                  self.make_msg('notify_completion', brick_id=brick_id),
+                  topic=topic or self.topic)
+
+    def assign_floating_ip(self, context, brick_id, floating_ip, topic=None):
+        self.cast(context,
+                  self.make_msg('assign_floating_ip',
+                                brick_id=brick_id,
+                                floating_ip=floating_ip),
+                  topic=topic or self.topic)
