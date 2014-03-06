@@ -102,7 +102,7 @@ class TestListBricks(base.FunctionalTest):
         next_marker = data['bricks'][-1]['uuid']
         self.assertIn(next_marker, data['next'])
 
-"""
+
 class TestPatch(base.FunctionalTest):
 
     def setUp(self):
@@ -247,7 +247,6 @@ class TestPatch(base.FunctionalTest):
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
 
-"""
 
 class TestPost(base.FunctionalTest):
 

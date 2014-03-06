@@ -16,7 +16,12 @@ BRICKS_URL = 'https://dash-dev.clouda.ca/dockerstack/update'
 ##
 # Actions
 def assign_floating_ip_action(req_context, brick_id, floating_ip):
-    """Action!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    """Assign a floating IP to a bricked instance wrapper method called to
+    be called from the manager.
+
+    :param req_context: -
+    :param brick_id: -
+    :param floating_ip: -
     """
     db = dbapi.get_instance()
     brick = db.get_brick(brick_id)
@@ -28,8 +33,8 @@ def assign_floating_ip_action(req_context, brick_id, floating_ip):
 def brick_deploy_action(req_context, brick_id):
     """Deploy a brick task called from the manageer.
 
-    Args:
-        task_context:
+    :param req_context:
+    :param brick_id:
     """
 
     db = dbapi.get_instance()
@@ -47,7 +52,7 @@ def brick_deploy_action(req_context, brick_id):
 
 
 def brick_destroy_action(req_context, brick_id):
-    """"Destroy a brick!
+    """Destroy a brick!
     """
     pass
 
