@@ -77,6 +77,9 @@ class ConductorManager(service.PeriodicService):
         # utils.brick_deploy_action(context, brick_id)
         self._spawn_worker(utils.brick_deploy_action, context, brick_id)
 
+    def do_brick_init(self, context, brick_id, topic=None):
+        self._spawn_worker(utils.brick_init_action, context, brick_id)
+
     def do_brick_destroy(self, context, brick_id, topic=None):
         self._spawn_worker(utils.brick_destroy_action, context, brick_id)
 

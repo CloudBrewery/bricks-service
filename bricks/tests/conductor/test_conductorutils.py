@@ -11,6 +11,14 @@ class DeployTestCase(base.DbTestCase):
         self.dbapi = dbapi.get_instance()
 
 
+class InitTestCase(base.DbTestCase):
+
+    def setUp(self):
+        super(InitTestCase, self).setUp()
+        self.context = context.get_admin_context()
+        self.dbapi = dbapi.get_instance()
+
+
 class DestroyTestCase(base.DbTestCase):
 
     def setUp(self):

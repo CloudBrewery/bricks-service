@@ -65,6 +65,16 @@ class ManagerTestCase(base.DbTestCase):
             self.assertEqual(brick['instance_id'], 'asdf-1234')
             deploy.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY)
 
+    def test_brick_init_simple(self):
+        brickconfig_dict = utils.get_test_brickconfig()
+        self.dbapi.create_brickconfig(brickconfig_dict)
+
+        brick_dict = utils.get_test_brick()
+        brick = self.dbapi.create_brick(brick_dict)
+
+        self.service.start()
+        self.assertEqual(brick['status'], states.INIT)
+
     def test__spawn_worker(self):
         func_mock = mock.Mock()
         args = (1, 2, "test")

@@ -25,6 +25,11 @@ class BrickPatchType(types.JsonPatchType):
     pass
 
 
+class BrickCommand(base.APIBase):
+    type = types.text
+    data = {types.text: types.text}
+
+
 class Brick(base.APIBase):
     """API representation of a Brick.
 
@@ -94,6 +99,7 @@ class BrickController(rest.RestController):
 
     _custom_actions = {
         'detail': ['GET'],
+        'status_update': ['POST'],
     }
 
     def _get_brick_collection(self, brickconfig_uuid, instance_id, status,
@@ -217,3 +223,16 @@ class BrickController(rest.RestController):
         :param brick_uuid: UUID of a brick.
         """
         pecan.request.dbapi.destroy_brick(brick_uuid)
+
+    @wsme_pecan.wsexpose(types.uuid, body=BrickCommand)
+    def status_update(self, brick_uuid, update):
+        """Perform updates on a brick
+
+        :param brick_uuid: UUID of a brick.
+        :param update: json containing update data.
+        """
+        if update.type == "init":
+            pecan.request.rpcapi.do_brick_init(pecan.request.context,
+                                               brick_uuid)
+        elif update.type == "complete":
+            pass

@@ -51,6 +51,20 @@ def brick_deploy_action(req_context, brick_id):
     brick.save(req_context)
 
 
+def brick_init_action(req_context, brick_id):
+    """Run init stuff on a brick.
+
+    :param req_context: Request context
+    :param brick_id: Brick UUID
+    """
+
+    db = dbapi.get_instance()
+    brick = db.get_brick(brick_id)
+
+    brick.status = states.INIT
+    brick.save(req_context)
+
+
 def brick_destroy_action(req_context, brick_id):
     """Destroy a brick!
     """
