@@ -83,7 +83,7 @@ Base = declarative_base(cls=BricksBase)
 
 
 class BrickConfig(Base):
-    """An entire brick configuration"""
+    """An entire brick configuration."""
 
     __tablename__ = 'brickconfig'
     __table_args__ = (
@@ -115,6 +115,7 @@ class Brick(Base):
     __table_args__ = (
         schema.UniqueConstraint('uuid', name='uniq_brick0uuid'),
         Index('brick_config_uuid', 'brickconfig_uuid'),
+        Index('brick_tenant_id', 'tenant_id'),
         Index('brick_instance_uuid', 'instance_id')
     )
 
@@ -124,6 +125,7 @@ class Brick(Base):
 
     deployed_at = Column(DateTime, nullable=True)
     instance_id = Column(String(36))
+    tenant_id = Column(String(255))
     status = Column(String(36))
     configuration = Column(JSONEncodedDict)
     deploy_log = Column(Text)

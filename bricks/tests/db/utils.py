@@ -14,6 +14,7 @@ def get_test_brick(**kw):
         'deployed_at': kw.get('deployed_at', datetime.datetime.now()),
         'instance_id': kw.get('instance_id',
                               '1be26c0b-03f2-4d2e-ae87-c02d7f33c781'),
+        'tenant_id': kw.get('tenant_id', 'mister-tenant'),
         'status': kw.get('status', states.NOSTATE),
         'configuration': kw.get('configuration', {}),
         'deploy_log': kw.get('deploy_log', 'this\nis\na\ntest\n'),

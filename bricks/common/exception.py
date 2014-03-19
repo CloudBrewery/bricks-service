@@ -83,6 +83,10 @@ class NotAuthorized(BricksException):
     code = 403
 
 
+class PolicyNotAuthorized(NotAuthorized):
+    message = _("Policy doesn't allow %(action)s to be performed.")
+
+
 class OperationNotPermitted(NotAuthorized):
     message = _("Operation not permitted.")
 

@@ -15,6 +15,8 @@ class Brick(base.BricksObject):
 
         'deployed_at': utils.datetime_or_str_or_none,
         'instance_id': utils.str_or_none,
+        'tenant_id': utils.str_or_none,
+
         # One of states. in states
         'status': utils.str_or_none,
 

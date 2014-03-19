@@ -1,4 +1,5 @@
 from datetime import datetime
+import functools
 import jsonpatch
 
 import pecan
@@ -14,11 +15,36 @@ from bricks.api.controllers.v1 import link
 from bricks.api.controllers.v1 import types
 from bricks.api.controllers.v1 import utils as api_utils
 from bricks.common import exception
+from bricks.common import policy
 from bricks import objects
 from bricks.openstack.common import excutils
 from bricks.openstack.common import log
 
 LOG = log.getLogger(__name__)
+
+
+def wrap_check_policy(func):
+    """Check policy corresponding to the wrapped methods prior to execution
+
+    This decorator requires the first 3 args of the wrapped function
+    to be (self, context, volume)
+    """
+    @functools.wraps(func)
+    def wrapped(self, *args, **kwargs):
+        check_policy(pecan.request.context, func.__name__)
+        return func(self, *args, **kwargs)
+
+    return wrapped
+
+
+def check_policy(context, action, target_obj=None):
+    target = {
+        'project_id': context.tenant,
+        'user_id': context.user,
+    }
+    target.update(target_obj or {})
+    _action = 'brick:%s' % action
+    policy.enforce(context, _action, target)
 
 
 class BrickPatchType(types.JsonPatchType):
@@ -42,6 +68,7 @@ class Brick(base.APIBase):
     brickconfig_uuid = types.uuid
     deployed_at = datetime
     instance_id = wtypes.text
+    tenant_id = wtypes.text
     status = wtypes.text
     configuration = {wtypes.text: wtypes.text}
 
@@ -102,16 +129,30 @@ class BrickController(rest.RestController):
         'status_update': ['POST'],
     }
 
-    def _get_brick_collection(self, brickconfig_uuid, instance_id, status,
-                              marker, limit, sort_key, sort_dir,
-                              expand=False, resource_url=None):
+    def _get_brick_collection(self, tenant_id, brickconfig_uuid,
+                              instance_id, status, marker, limit, sort_key,
+                              sort_dir, expand=False, resource_url=None):
+
+        filters = {}
+
+        ctx = pecan.request.context
+
+        ###
+        # Tenant Filter Removed or Applied Here
+        ###
+        if not ctx.is_admin and not tenant_id == ctx.tenant:
+            # only admins can set a non-tenant locked down tenant filter.
+            raise exception.NotAuthorized()
+        elif tenant_id:
+            filters['tenant_id'] = tenant_id
+
         limit = api_utils.validate_limit(limit)
         sort_dir = api_utils.validate_sort_dir(sort_dir)
         marker_obj = None
+
         if marker:
             marker_obj = objects.Brick.get_by_uuid(pecan.request.context,
                                                    marker)
-        filters = {}
         if brickconfig_uuid:
             filters['brickconfig_uuid'] = brickconfig_uuid
         if instance_id:
@@ -129,12 +170,16 @@ class BrickController(rest.RestController):
                                                    sort_key=sort_key,
                                                    sort_dir=sort_dir)
 
-    @wsme_pecan.wsexpose(BricksCollection, types.uuid, wtypes.text,
-                         wtypes.text, types.uuid, int, wtypes.text, wtypes.text)
-    def get_all(self, brickconfig_uuid=None, instance_id=None, status=None,
-                marker=None, limit=None, sort_key='id', sort_dir='asc'):
+    @wsme_pecan.wsexpose(BricksCollection, wtypes.text, types.uuid,
+                         wtypes.text, wtypes.text, types.uuid, int,
+                         wtypes.text, wtypes.text)
+    @wrap_check_policy
+    def get_all(self, tenant_id=None, brickconfig_uuid=None,
+                instance_id=None, status=None, marker=None, limit=None,
+                sort_key='id', sort_dir='asc'):
         """Retrieve a list of bricks.
 
+        :param tenant_id:
         :param brickconfig_uuid:
         :param instance_id:
         :param status:
@@ -144,13 +189,16 @@ class BrickController(rest.RestController):
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
         """
         return self._get_brick_collection(
-            brickconfig_uuid, instance_id, status, marker, limit, sort_key,
-            sort_dir)
+            tenant_id, brickconfig_uuid, instance_id, status, marker, limit,
+            sort_key, sort_dir)
 
-    @wsme_pecan.wsexpose(BricksCollection, types.uuid, wtypes.text,
-                         wtypes.text, types.uuid, int, wtypes.text, wtypes.text)
-    def detail(self, brickconfig_uuid=None, instance_id=None, status=None,
-               marker=None, limit=None, sort_key='id', sort_dir='asc'):
+    @wsme_pecan.wsexpose(BricksCollection, wtypes.text, types.uuid,
+                         wtypes.text, wtypes.text, types.uuid, int,
+                         wtypes.text, wtypes.text)
+    @wrap_check_policy
+    def detail(self, tenant_id=None, brickconfig_uuid=None,
+               instance_id=None, status=None, marker=None, limit=None,
+               sort_key='id', sort_dir='asc'):
         """Retrieve a list of bricks with detail.
 
         :param marker: pagination marker for large data sets.
@@ -166,20 +214,24 @@ class BrickController(rest.RestController):
         expand = True
         resource_url = '/'.join(['bricks', 'detail'])
         return self._get_brick_collection(
-            brickconfig_uuid, instance_id, status, marker, limit, sort_key,
-            sort_dir, expand, resource_url)
+            tenant_id, brickconfig_uuid, instance_id, status, marker,
+            limit, sort_key, sort_dir, expand, resource_url)
 
     @wsme_pecan.wsexpose(Brick, types.uuid)
+    @wrap_check_policy
     def get_one(self, brick_uuid):
         """Retrieve information about the given brick.
 
         :param brick_uuid: UUID of a brick.
         """
+        req_ctx = pecan.request.context
+        tenant_id = req_ctx.tenant if not req_ctx.is_admin else None
         rpc_brick = objects.Brick.get_by_uuid(pecan.request.context,
-                                              brick_uuid)
+                                              brick_uuid, tenant_id=tenant_id)
         return Brick.convert_with_links(rpc_brick)
 
     @wsme_pecan.wsexpose(Brick, body=Brick, status_code=201)
+    @wrap_check_policy
     def post(self, brick):
         """Create a new brick.
 
@@ -194,14 +246,17 @@ class BrickController(rest.RestController):
 
     @wsme.validate(types.uuid, [BrickPatchType])
     @wsme_pecan.wsexpose(Brick, types.uuid, body=[BrickPatchType])
+    @wrap_check_policy
     def patch(self, brick_uuid, patch):
         """Update an existing brick.
 
         :param brick_uuid: UUID of a brick.
         :param patch: a json PATCH document to apply to this brick.
         """
+        req_ctx = pecan.request.context
+        tenant_id = req_ctx.tenant if not req_ctx.is_admin else None
         rpc_brick = objects.Brick.get_by_uuid(pecan.request.context,
-                                              brick_uuid)
+                                              brick_uuid, tenant_id=tenant_id)
         try:
             brick = Brick(**jsonpatch.apply_patch(rpc_brick.as_dict(),
                                                   jsonpatch.JsonPatch(patch)))
@@ -217,14 +272,18 @@ class BrickController(rest.RestController):
         return Brick.convert_with_links(rpc_brick)
 
     @wsme_pecan.wsexpose(None, types.uuid, status_code=204)
+    @wrap_check_policy
     def delete(self, brick_uuid):
         """Delete a brick.
 
         :param brick_uuid: UUID of a brick.
         """
-        pecan.request.dbapi.destroy_brick(brick_uuid)
+        req_ctx = pecan.request.context
+        tenant_id = req_ctx.tenant if not req_ctx.is_admin else None
+        pecan.request.dbapi.destroy_brick(brick_uuid, tenant_id=tenant_id)
 
     @wsme_pecan.wsexpose(types.uuid, body=BrickCommand)
+    @wrap_check_policy
     def status_update(self, brick_uuid, update):
         """Perform updates on a brick
 
