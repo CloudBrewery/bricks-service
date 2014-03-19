@@ -4,18 +4,16 @@
       "admin_api": "is_admin:True",
       "default": "rule:admin_api",
       
-      "brick:create": "rule:admin_or_owner",
-      "brick:delete": "rule:admin_or_owner",
-      "brick:update": "rule:admin_or_owner",
+      "brick:create": "",
+      "brick:delete": "",
+      "brick:update": "",
       "brick:status_update": "rule:admin_api",
-      "brick:get_one": "rule:admin_or_owner",
-      "brick:get_all": "rule:admin_or_owner",
-      "brick:get_all_tenants": "rule:admin_api",
+      "brick:get_one": ""
+      "brick:get_all": "",
 
       "brickconfig:create": "rule:admin_api",
       "brickconfig:delete": "rule:admin_api",
       "brickconfig:update": "rule:admin_api",
-      "brickconfig:get_one": "rule:admin_or_owner",
-      "brickconfig:get_all": "rule:admin_or_owner",
-      "brickconfig:get_all_tenants": "rule:admin_api",
+      "brickconfig:get_one": "",
+      "brickconfig:get_all": "",
 }
