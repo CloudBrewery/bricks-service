@@ -46,7 +46,7 @@ class BrickConfig(base.APIBase):
     logo = wtypes.text
     app_version = wtypes.text
     ports = [wtypes.text]
-    environ = [wtypes.text]
+    environ = {wtypes.text: wtypes.text}
     email_template = wtypes.text
 
     links = [link.Link]

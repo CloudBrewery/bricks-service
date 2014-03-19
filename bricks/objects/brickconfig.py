@@ -20,7 +20,7 @@ class BrickConfig(base.BricksObject):
         'app_version': utils.str_or_none,
 
         'ports': utils.list_or_none,
-        'environ': utils.list_or_none,
+        'environ': utils.dict_or_none,
         'email_template': utils.str_or_none,
     }
 

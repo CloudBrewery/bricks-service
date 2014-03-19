@@ -9,7 +9,7 @@ import urlparse
 from oslo.config import cfg
 
 from sqlalchemy import Boolean, Column, DateTime
-from sqlalchemy import ForeignKey, Integer, Index
+from sqlalchemy import Integer, Index
 from sqlalchemy import schema, String, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.types import TypeDecorator, VARCHAR
@@ -103,7 +103,8 @@ class BrickConfig(Base):
     app_version = Column(String(36), nullable=True)
 
     ports = Column(JSONEncodedList, nullable=True)
-    environ = Column(JSONEncodedList, nullable=True)
+    # environ is going to exist as a DICT for now and use weights for ordering.
+    environ = Column(JSONEncodedDict, nullable=True)
     email_template = Column(Text, nullable=True)
 
 
