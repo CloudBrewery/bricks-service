@@ -46,6 +46,11 @@ class BrickConfig(base.APIBase):
     logo = wtypes.text
     app_version = wtypes.text
     ports = [wtypes.text]
+    # simplified as a dict, will require keys:
+    #  name
+    #  label
+    #  type (text, password supported)
+    #  weight (string, number 1-100?)
     environ = {wtypes.text: wtypes.text}
     email_template = wtypes.text
 
