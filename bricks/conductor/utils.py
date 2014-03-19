@@ -48,27 +48,53 @@ def brick_deploy_action(req_context, brick_id):
 
     # return an instance ID to assoc the brick
     brick.instance_id = server_id
+    brick.status = states.INIT
     brick.save(req_context)
 
 
-def brick_init_action(req_context, brick_id):
-    """Run init stuff on a brick.
-
-    :param req_context: Request context
-    :param brick_id: Brick UUID
+def brick_deploying_action(req_context, brick_id):
+    """Brick has reached deploying state.
     """
 
     db = dbapi.get_instance()
     brick = db.get_brick(brick_id)
 
-    brick.status = states.INIT
+    brick.status = states.DEPLOYING
+    brick.save(req_context)
+
+
+def brick_deployfail_action(req_context, brick_id):
+    """Brick has failed to deploy
+    """
+
+    db = dbapi.get_instance()
+    brick = db.get_brick(brick_id)
+
+    brick.status = states.DEPLOYFAIL
+    brick.save(req_context)
+
+
+def brick_deploydone_action(req_context, brick_id):
+    """Brick has completed deploying
+    """
+
+    db = dbapi.get_instance()
+    brick = db.get_brick(brick_id)
+
+    brick.status = states.DEPLOYDONE
     brick.save(req_context)
 
 
 def brick_destroy_action(req_context, brick_id):
     """Destroy a brick!
     """
-    pass
+
+    db = dbapi.get_instance()
+    brick = db.get_brick(brick_id)
+
+    _destroy_nova_server(req_context, brick.instance_id)
+
+    db.destroy_brick(brick_id)
 
 
 ##
@@ -101,6 +127,14 @@ def _deploy_nova_server(req_context, brick, brickconfig):
         security_groups=sec_groups)
 
     return server.id
+
+
+def _destroy_nova_server(req_context, instance_id):
+    """Destroys nova instance
+    """
+
+    novaclient = opencrack.build_nova_client(req_context)
+    novaclient.servers.delete(instance_id)
 
 
 def get_userdata():

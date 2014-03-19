@@ -15,6 +15,7 @@ from bricks.api.controllers.v1 import types
 from bricks.api.controllers.v1 import utils as api_utils
 from bricks.common import exception
 from bricks.common import policy
+from bricks.common import states
 from bricks import objects
 from bricks.openstack.common import excutils
 from bricks.openstack.common import log
@@ -282,8 +283,12 @@ class BrickController(rest.RestController):
         :param update: json containing update data.
         """
         check_policy(pecan.request.context, 'status_update')
-        if update.type == "init":
-            pecan.request.rpcapi.do_brick_init(pecan.request.context,
-                                               brick_uuid)
-        elif update.type == "complete":
-            pass
+        if update.type == states.DEPLOYING:
+            pecan.request.rpcapi.do_brick_deploy(pecan.request.context,
+                                                 brick_uuid)
+        elif update.type == states.DEPLOYFAIL:
+            pecan.request.rpcapi.do_brick_deployfail(pecan.request.context,
+                                                     brick_uuid)
+        elif update.type == states.DEPLOYDONE:
+            pecan.request.rpcapi.do_brick_deploydone(pecan.request.context,
+                                                     brick_uuid)
