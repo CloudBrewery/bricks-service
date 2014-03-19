@@ -36,13 +36,13 @@ class Brick(base.BricksObject):
         return brick
 
     @base.remotable_classmethod
-    def get_by_uuid(cls, context, uuid):
+    def get_by_uuid(cls, context, uuid, tenant_id=None):
         """Find a brick based on uuid and return a Brick object.
 
         :param uuid: the uuid of a brick.
         :returns: a :class:`Brick` object.
         """
-        db_brick = cls.dbapi.get_brick(uuid)
+        db_brick = cls.dbapi.get_brick(uuid, tenant_id)
         return Brick._from_db_object(cls(), db_brick)
 
     @base.remotable

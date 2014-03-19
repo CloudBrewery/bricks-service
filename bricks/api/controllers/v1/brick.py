@@ -1,5 +1,4 @@
 from datetime import datetime
-import functools
 import jsonpatch
 
 import pecan
@@ -23,20 +22,6 @@ from bricks.openstack.common import log
 LOG = log.getLogger(__name__)
 
 
-def wrap_check_policy(func):
-    """Check policy corresponding to the wrapped methods prior to execution
-
-    This decorator requires the first 3 args of the wrapped function
-    to be (self, context, volume)
-    """
-    @functools.wraps(func)
-    def wrapped(self, *args, **kwargs):
-        check_policy(pecan.request.context, func.__name__)
-        return func(self, *args, **kwargs)
-
-    return wrapped
-
-
 def check_policy(context, action, target_obj=None):
     target = {
         'project_id': context.tenant,
@@ -48,7 +33,10 @@ def check_policy(context, action, target_obj=None):
 
 
 class BrickPatchType(types.JsonPatchType):
-    pass
+
+    @staticmethod
+    def mandatory_attrs():
+        return ['/configuration', ]
 
 
 class BrickCommand(base.APIBase):
@@ -173,7 +161,6 @@ class BrickController(rest.RestController):
     @wsme_pecan.wsexpose(BricksCollection, wtypes.text, types.uuid,
                          wtypes.text, wtypes.text, types.uuid, int,
                          wtypes.text, wtypes.text)
-    @wrap_check_policy
     def get_all(self, tenant_id=None, brickconfig_uuid=None,
                 instance_id=None, status=None, marker=None, limit=None,
                 sort_key='id', sort_dir='asc'):
@@ -188,6 +175,7 @@ class BrickController(rest.RestController):
         :param sort_key: column to sort results by. Default: id.
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
         """
+        check_policy(pecan.request.context, 'get_all')
         return self._get_brick_collection(
             tenant_id, brickconfig_uuid, instance_id, status, marker, limit,
             sort_key, sort_dir)
@@ -195,7 +183,6 @@ class BrickController(rest.RestController):
     @wsme_pecan.wsexpose(BricksCollection, wtypes.text, types.uuid,
                          wtypes.text, wtypes.text, types.uuid, int,
                          wtypes.text, wtypes.text)
-    @wrap_check_policy
     def detail(self, tenant_id=None, brickconfig_uuid=None,
                instance_id=None, status=None, marker=None, limit=None,
                sort_key='id', sort_dir='asc'):
@@ -206,6 +193,7 @@ class BrickController(rest.RestController):
         :param sort_key: column to sort results by. Default: id.
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
         """
+        check_policy(pecan.request.context, 'get_all')
         # /detail should only work agaist collections
         parent = pecan.request.path.split('/')[:-1][-1]
         if parent != "bricks":
@@ -218,12 +206,12 @@ class BrickController(rest.RestController):
             limit, sort_key, sort_dir, expand, resource_url)
 
     @wsme_pecan.wsexpose(Brick, types.uuid)
-    @wrap_check_policy
     def get_one(self, brick_uuid):
         """Retrieve information about the given brick.
 
         :param brick_uuid: UUID of a brick.
         """
+        check_policy(pecan.request.context, 'get_one')
         req_ctx = pecan.request.context
         tenant_id = req_ctx.tenant if not req_ctx.is_admin else None
         rpc_brick = objects.Brick.get_by_uuid(pecan.request.context,
@@ -231,12 +219,12 @@ class BrickController(rest.RestController):
         return Brick.convert_with_links(rpc_brick)
 
     @wsme_pecan.wsexpose(Brick, body=Brick, status_code=201)
-    @wrap_check_policy
     def post(self, brick):
         """Create a new brick.
 
         :param brick: a brick within the request body.
         """
+        check_policy(pecan.request.context, 'create')
         try:
             new_brick = pecan.request.dbapi.create_brick(brick.as_dict())
         except Exception as e:
@@ -246,13 +234,14 @@ class BrickController(rest.RestController):
 
     @wsme.validate(types.uuid, [BrickPatchType])
     @wsme_pecan.wsexpose(Brick, types.uuid, body=[BrickPatchType])
-    @wrap_check_policy
     def patch(self, brick_uuid, patch):
         """Update an existing brick.
 
         :param brick_uuid: UUID of a brick.
         :param patch: a json PATCH document to apply to this brick.
         """
+        check_policy(pecan.request.context, 'update')
+
         req_ctx = pecan.request.context
         tenant_id = req_ctx.tenant if not req_ctx.is_admin else None
         rpc_brick = objects.Brick.get_by_uuid(pecan.request.context,
@@ -272,24 +261,24 @@ class BrickController(rest.RestController):
         return Brick.convert_with_links(rpc_brick)
 
     @wsme_pecan.wsexpose(None, types.uuid, status_code=204)
-    @wrap_check_policy
     def delete(self, brick_uuid):
         """Delete a brick.
 
         :param brick_uuid: UUID of a brick.
         """
+        check_policy(pecan.request.context, 'delete')
         req_ctx = pecan.request.context
         tenant_id = req_ctx.tenant if not req_ctx.is_admin else None
         pecan.request.dbapi.destroy_brick(brick_uuid, tenant_id=tenant_id)
 
     @wsme_pecan.wsexpose(types.uuid, body=BrickCommand)
-    @wrap_check_policy
     def status_update(self, brick_uuid, update):
         """Perform updates on a brick
 
         :param brick_uuid: UUID of a brick.
         :param update: json containing update data.
         """
+        check_policy(pecan.request.context, 'status_update')
         if update.type == "init":
             pecan.request.rpcapi.do_brick_init(pecan.request.context,
                                                brick_uuid)

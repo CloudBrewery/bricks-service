@@ -26,7 +26,7 @@ class TestBrickObject(base.DbTestCase):
 
             objects.Brick.get_by_uuid(self.context, uuid)
 
-            mock_get_brick.assert_called_once_with(uuid)
+            mock_get_brick.assert_called_once_with(uuid, None)
 
     def test_save(self):
         uuid = self.fake_brick['uuid']
@@ -40,7 +40,7 @@ class TestBrickObject(base.DbTestCase):
                 c.configuration = {"test": 123}
                 c.save()
 
-                mock_get_brick.assert_called_once_with(uuid)
+                mock_get_brick.assert_called_once_with(uuid, None)
                 mock_update_brick.assert_called_once_with(
                     uuid, {'configuration': {"test": 123}})
 
@@ -49,7 +49,7 @@ class TestBrickObject(base.DbTestCase):
         new_uuid = bricks_utils.generate_uuid()
         returns = [dict(self.fake_brick, uuid=uuid),
                    dict(self.fake_brick, uuid=new_uuid)]
-        expected = [mock.call(uuid), mock.call(uuid)]
+        expected = [mock.call(uuid, None), mock.call(uuid, None)]
         with mock.patch.object(self.dbapi, 'get_brick', side_effect=returns,
                                autospec=True) as mock_get_brick:
             c = objects.Brick.get_by_uuid(self.context, uuid)
