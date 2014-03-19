@@ -81,7 +81,7 @@ def _deploy_nova_server(req_context, brick, brickconfig):
     image = '8b20af24-1946-4fe5-a7c3-ad908c684712'
 
     # Create our required security group if needed
-    sec_groups = ensure_secugirty_groups(req_context, brickconfig)
+    sec_groups = ensure_security_groups(req_context, brickconfig)
     meta = prepare_instance_meta(req_context, brick, brickconfig)
 
     nic = [{"net-id": brick.configuration['network'],
@@ -110,7 +110,7 @@ def get_userdata():
     return open(userdata_path, 'r')
 
 
-def ensure_secugirty_groups(req_context, brickconfig):
+def ensure_security_groups(req_context, brickconfig):
     """Ensure a security group is created or already exists for the user
     under the name, and make sure it has the correct ports open.
     """
@@ -148,7 +148,9 @@ def ensure_secugirty_groups(req_context, brickconfig):
 
 
 def get_tgz_downloads(brickconfig):
+    """Literally
 
+    """
     tgz_download = [app_settings.DOCKERSTACK_BRICKINIT, ]
     for dep in brickconfig.dockerstack_url:
         tgz_download.append(dep)
@@ -162,27 +164,19 @@ def prepare_instance_meta(req_context, brick, brickconfig):
     deploy is happening so Dockerstack can initialize fully.
 
     """
-    tgz_download = get_tgz_downloads(brickconfig)
 
-    meta = {
-        'brick_name': brickconfig.name,
-        'dockerstack_download': app_settings.DOCKERSTACK_APP_REPO,
-        'dockerstack_repo': json.dumps(tgz_download)
-    }
+    meta = {}
 
     tmp = {
-        'BRICKS_URL': BRICKS_URL,
+        'BRICKS_API': BRICKS_URL,
+        'BRICKS_UUID': brick.uuid,
         'TOKEN_ID': req_context.auth_token.id,
     }
 
     for k, v in tmp.items():
         meta['_tmp_' + k] = v
 
-    for k, v in brick.configuration.items():
-        meta['_env_' + k] = v
-
     return meta
-
 
 
 def _drive_floating_ip(req_context, brick, floating_ip):
