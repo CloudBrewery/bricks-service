@@ -26,8 +26,8 @@ class BrickPatchType(types.JsonPatchType):
 
 
 class BrickCommand(base.APIBase):
-    type = types.text
-    data = {types.text: types.text}
+    type = wtypes.text
+    data = {wtypes.text: wtypes.text}
 
 
 class Brick(base.APIBase):
