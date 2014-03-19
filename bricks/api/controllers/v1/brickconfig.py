@@ -1,6 +1,5 @@
 import datetime
 
-
 import jsonpatch
 import pecan
 from pecan import rest
@@ -14,11 +13,22 @@ from bricks.api.controllers.v1 import link
 from bricks.api.controllers.v1 import types
 from bricks.api.controllers.v1 import utils as api_utils
 from bricks.common import exception
+from bricks.common import policy
 from bricks import objects
 from bricks.openstack.common import excutils
 from bricks.openstack.common import log
 
 LOG = log.getLogger(__name__)
+
+
+def check_policy(context, action, target_obj=None):
+    target = {
+        'project_id': context.tenant,
+        'user_id': context.user,
+    }
+    target.update(target_obj or {})
+    _action = 'brickconfig:%s' % action
+    policy.enforce(context, _action, target)
 
 
 class BrickConfigPatchType(types.JsonPatchType):
@@ -166,6 +176,7 @@ class BrickConfigController(rest.RestController):
         :param sort_key: column to sort results by. Default: id.
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
         """
+        check_policy(pecan.request.context, 'get_all')
         return self._get_brickconfigs_collection(tag, is_public, marker,
                                                  limit, sort_key, sort_dir)
 
@@ -182,6 +193,7 @@ class BrickConfigController(rest.RestController):
         :param sort_key: column to sort results by. Default: id.
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
         """
+        check_policy(pecan.request.context, 'get_all')
         # NOTE(lucasagomes): /detail should only work agaist collections
         parent = pecan.request.path.split('/')[:-1][-1]
         if parent != "brickconfigs":
@@ -199,6 +211,7 @@ class BrickConfigController(rest.RestController):
 
         :param brickconfig_uuid: UUID of a bc.
         """
+        check_policy(pecan.request.context, 'get_one')
         if self._from_nodes:
             raise exception.OperationNotPermitted
 
@@ -212,6 +225,7 @@ class BrickConfigController(rest.RestController):
 
         :param brickconfig: a bc within the request body.
         """
+        check_policy(pecan.request.context, 'create')
         if self._from_nodes:
             raise exception.OperationNotPermitted
 
@@ -231,6 +245,7 @@ class BrickConfigController(rest.RestController):
         :param brickconfig_uuid: UUID of a bc.
         :param patch: a json PATCH document to apply to this bc.
         """
+        check_policy(pecan.request.context, 'update')
         if self._from_nodes:
             raise exception.OperationNotPermitted
 
@@ -256,6 +271,7 @@ class BrickConfigController(rest.RestController):
 
         :param brickconfig_uuid: UUID of a bc.
         """
+        check_policy(pecan.request.context, 'delete')
         if self._from_nodes:
             raise exception.OperationNotPermitted
 
