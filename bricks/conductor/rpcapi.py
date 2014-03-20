@@ -48,6 +48,21 @@ class ConductorAPI(bricks.openstack.common.rpc.proxy.RpcProxy):
                   self.make_msg('do_brick_init', brick_id=brick_id),
                   topic=topic or self.topic)
 
+    def do_brick_deploying(self, context, brick_id, topic=None):
+        self.cast(context,
+                  self.make_msg('do_brick_deploying', brick_id=brick_id),
+                  topic=topic or self.topic)
+
+    def do_brick_deployfail(self, context, brick_id, topic=None):
+        self.cast(context,
+                  self.make_msg('do_brick_deployfail', brick_id=brick_id),
+                  topic=topic or self.topic)
+
+    def do_brick_deploydone(self, context, brick_id, topic=None):
+        self.cast(context,
+                  self.make_msg('do_brick_deploydone', brick_id=brick_id),
+                  topic=topic or self.topic)
+
     def do_brick_destroy(self, context, brick_id, topic=None):
         self.cast(context,
                   self.make_msg('do_brick_destroy', brick_id=brick_id),

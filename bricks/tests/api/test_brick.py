@@ -22,6 +22,7 @@ import mock
 from oslo.config import cfg
 
 from bricks.common import utils
+from bricks.common import states
 from bricks.openstack.common import timeutils
 from bricks.tests.api import base
 from bricks.tests.api import utils as apiutils
@@ -323,3 +324,37 @@ class TestDelete(base.FunctionalTest):
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
 
+class TestStatusUpdate(base.FunctionalTest):
+
+    def test_brick_deploying(self):
+        cdict = dbutils.get_test_brick()
+        self.dbapi.create_brick(cdict)
+        with mock.patch('bricks.conductor.rpcapi.ConductorAPI.do_brick_deploying') \
+            as deploying:
+            self.post_json('/bricks/%s/status_update' % cdict['uuid'],
+                        {'type': states.DEPLOYING}, context=self.context)
+
+            result = self.get_json('/bricks/%s' % cdict['uuid'])
+            self.assertTrue(deploying.call_count == 1)
+
+    def test_brick_deployfail(self):
+        cdict = dbutils.get_test_brick()
+        self.dbapi.create_brick(cdict)
+        with mock.patch('bricks.conductor.rpcapi.ConductorAPI.do_brick_deployfail') \
+            as deployfail:
+            self.post_json('/bricks/%s/status_update' % cdict['uuid'],
+                        {'type': states.DEPLOYFAIL}, context=self.context)
+
+            result = self.get_json('/bricks/%s' % cdict['uuid'])
+            self.assertTrue(deployfail.call_count == 1)
+
+    def test_brick_deploydone(self):
+        cdict = dbutils.get_test_brick()
+        self.dbapi.create_brick(cdict)
+        with mock.patch('bricks.conductor.rpcapi.ConductorAPI.do_brick_deploydone') \
+            as deploydone:
+            self.post_json('/bricks/%s/status_update' % cdict['uuid'],
+                        {'type': states.DEPLOYDONE}, context=self.context)
+
+            result = self.get_json('/bricks/%s' % cdict['uuid'])
+            self.assertTrue(deploydone.call_count == 1)

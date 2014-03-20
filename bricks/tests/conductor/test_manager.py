@@ -65,15 +65,35 @@ class ManagerTestCase(base.DbTestCase):
             self.assertEqual(brick['instance_id'], 'asdf-1234')
             deploy.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY)
 
-    def test_brick_init_simple(self):
-        brickconfig_dict = utils.get_test_brickconfig()
-        self.dbapi.create_brickconfig(brickconfig_dict)
-
+    def test_brick_deploying(self):
         brick_dict = utils.get_test_brick()
         brick = self.dbapi.create_brick(brick_dict)
 
         self.service.start()
-        self.assertEqual(brick['status'], states.INIT)
+        self.service.do_brick_deploying(self.context, brick['uuid'])
+        self.service._worker_pool.waitall()
+        brick.refresh(self.context)
+        self.assertEqual(brick['status'], states.DEPLOYING)
+
+    def test_brick_deployfail(self):
+        brick_dict = utils.get_test_brick()
+        brick = self.dbapi.create_brick(brick_dict)
+
+        self.service.start()
+        self.service.do_brick_deployfail(self.context, brick['uuid'])
+        self.service._worker_pool.waitall()
+        brick.refresh(self.context)
+        self.assertEqual(brick['status'], states.DEPLOYFAIL)
+
+    def test_brick_deploydone(self):
+        brick_dict = utils.get_test_brick()
+        brick = self.dbapi.create_brick(brick_dict)
+
+        self.service.start()
+        self.service.do_brick_deploydone(self.context, brick['uuid'])
+        self.service._worker_pool.waitall()
+        brick.refresh(self.context)
+        self.assertEqual(brick['status'], states.DEPLOYDONE)
 
     def test__spawn_worker(self):
         func_mock = mock.Mock()

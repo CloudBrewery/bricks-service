@@ -275,7 +275,7 @@ class BrickController(rest.RestController):
         tenant_id = req_ctx.tenant if not req_ctx.is_admin else None
         pecan.request.dbapi.destroy_brick(brick_uuid, tenant_id=tenant_id)
 
-    @wsme_pecan.wsexpose(types.uuid, body=BrickCommand)
+    @wsme_pecan.wsexpose(Brick, types.uuid, body=BrickCommand)
     def status_update(self, brick_uuid, update):
         """Perform updates on a brick
 
@@ -284,8 +284,8 @@ class BrickController(rest.RestController):
         """
         check_policy(pecan.request.context, 'status_update')
         if update.type == states.DEPLOYING:
-            pecan.request.rpcapi.do_brick_deploy(pecan.request.context,
-                                                 brick_uuid)
+            pecan.request.rpcapi.do_brick_deploying(pecan.request.context,
+                                                    brick_uuid)
         elif update.type == states.DEPLOYFAIL:
             pecan.request.rpcapi.do_brick_deployfail(pecan.request.context,
                                                      brick_uuid)
