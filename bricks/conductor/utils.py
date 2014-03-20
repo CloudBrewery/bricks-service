@@ -9,6 +9,8 @@ from bricks.common import states
 from bricks.db import api as dbapi
 from bricks.openstack.common import log
 
+from novaclient import exceptions as nova_exceptions
+
 LOG = log.getLogger(__name__)
 
 BRICKS_URL = 'https://dash-dev.clouda.ca/dockerstack/update'
@@ -81,7 +83,10 @@ def brick_destroy_action(req_context, brick_id):
     db = dbapi.get_instance()
     brick = db.get_brick(brick_id)
 
-    _destroy_nova_server(req_context, brick.instance_id)
+    try:
+        _destroy_nova_server(req_context, brick.instance_id)
+    except nova_exceptions.NotFound:
+        pass
 
     db.destroy_brick(brick_id)
 

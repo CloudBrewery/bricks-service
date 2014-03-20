@@ -3,12 +3,15 @@ import time
 import mock
 from oslo.config import cfg
 
+from bricks.common import exception
 from bricks.common import states
 from bricks.conductor import manager
 from bricks.db import api as dbapi
 from bricks.openstack.common import context
 from bricks.tests.db import base
 from bricks.tests.db import utils
+
+from novaclient import exceptions as nova_exceptions
 
 CONF = cfg.CONF
 
@@ -22,8 +25,33 @@ class ManagerTestCase(base.DbTestCase):
         self.dbapi = dbapi.get_instance()
 
     def test_brick_destroy_simple(self):
-        # TODO(thurloat): test brick destroying manager call
-        pass
+        brick_dict = utils.get_test_brick()
+        brick = self.dbapi.create_brick(brick_dict)
+
+        self.service.start()
+
+        with mock.patch('bricks.conductor.utils._destroy_nova_server') \
+                as destroy:
+            destroy.return_value = 204
+            self.service.do_brick_destroy(self.context, brick['uuid'])
+            self.service._worker_pool.waitall()
+            self.assertRaises(exception.BrickNotFound,
+                              brick.refresh, self.context)
+
+    def test_brick_destroy_no_instance(self):
+        brick_dict = utils.get_test_brick()
+        brick = self.dbapi.create_brick(brick_dict)
+
+        self.service.start()
+
+        with mock.patch('bricks.conductor.utils._destroy_nova_server',
+                        side_effect=nova_exceptions.NotFound(
+                            brick['instance_id']
+                        )):
+            self.service.do_brick_destroy(self.context, brick['uuid'])
+            self.service._worker_pool.waitall()
+            self.assertRaises(exception.BrickNotFound,
+                              brick.refresh, self.context)
 
     def test_notify_completion_simple(self):
         # TODO(thurloat): test completion manager call
