@@ -248,13 +248,21 @@ class TestPost(base.FunctionalTest):
         cdict = apiutils.get_test_brick_json()
         test_time = datetime.datetime(2000, 1, 1, 0, 0)
         mock_utcnow.return_value = test_time
-        response = self.post_json('/bricks', cdict)
-        self.assertEqual(201, response.status_int)
-        result = self.get_json('/bricks/%s' % cdict['uuid'])
-        self.assertEqual(cdict['uuid'], result['uuid'])
-        self.assertFalse(result['updated_at'])
-        return_created_at = timeutils.parse_isotime(result['created_at']).replace(tzinfo=None)
-        self.assertEqual(test_time, return_created_at)
+        with mock.patch(
+            'bricks.conductor.rpcapi.ConductorAPI.do_brick_deploy'
+        ) as do_brick_deploy:
+            do_brick_deploy.return_value = 'yep'
+
+            response = self.post_json('/bricks', cdict)
+            self.assertEqual(201, response.status_int)
+            result = self.get_json('/bricks/%s' % cdict['uuid'])
+            self.assertEqual(cdict['uuid'], result['uuid'])
+            self.assertFalse(result['updated_at'])
+            return_created_at = timeutils.parse_isotime(result['created_at']).replace(tzinfo=None)
+            self.assertEqual(test_time, return_created_at)
+
+            # assert that the deploy task has been started.
+            self.assertEqual(1, do_brick_deploy.call_count)
 
     def test_create_brick_generate_uuid(self):
         cdict = apiutils.get_test_brick_json()
@@ -273,10 +281,20 @@ class TestPost(base.FunctionalTest):
 
     def test_create_brick_invalid_configuration(self):
         cdict = apiutils.get_test_brick_json(configuration={'foo': 123})
-        response = self.post_json('/bricks', cdict, expect_errors=True)
-        self.assertEqual(400, response.status_int)
-        self.assertEqual('application/json', response.content_type)
-        self.assertTrue(response.json['error_message'])
+
+        with mock.patch(
+            'bricks.conductor.rpcapi.ConductorAPI.do_brick_deploy'
+        ) as do_brick_deploy:
+            do_brick_deploy.return_value = 'yep'
+
+            response = self.post_json('/bricks', cdict, expect_errors=True)
+            self.assertEqual(400, response.status_int)
+            self.assertEqual('application/json', response.content_type)
+            self.assertTrue(response.json['error_message'])
+
+            # brick deploy should never be called if the object wasn't created
+            # successfully.
+            self.assertEqual(0, do_brick_deploy.call_count)
 
     def test_create_brick_unicode_status(self):
         status = u'\u0430\u043c\u043e'

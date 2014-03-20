@@ -227,9 +227,12 @@ class BrickController(rest.RestController):
         check_policy(pecan.request.context, 'create')
         try:
             new_brick = pecan.request.dbapi.create_brick(brick.as_dict())
+            pecan.request.rpcapi.do_brick_deploy(pecan.request.context,
+                                                 new_brick.uuid)
         except Exception as e:
             with excutils.save_and_reraise_exception():
                 LOG.exception(e)
+
         return Brick.convert_with_links(new_brick)
 
     @wsme.validate(types.uuid, [BrickPatchType])
