@@ -107,13 +107,13 @@ class TestPatch(base.FunctionalTest):
 
     def setUp(self):
         super(TestPatch, self).setUp()
-        cdict = apiutils.get_test_brick_json()
+        cdict = dbutils.get_test_brick()
         self.dbapi.create_brick(cdict)
 
     def test_update_not_found(self):
         uuid = utils.generate_uuid()
         response = self.patch_json('/bricks/%s' % uuid,
-                                   [{'status': '/configuration/a',
+                                   [{'path': '/configuration/a',
                                      'value': 'b',
                                      'op': 'add'}],
                                    expect_errors=True)
@@ -142,7 +142,8 @@ class TestPatch(base.FunctionalTest):
 
     def test_replace_multi(self):
         configuration = {"foo1": "bar1", "foo2": "bar2", "foo3": "bar3"}
-        cdict = apiutils.get_test_brick_json(config=configuration, uuid=utils.generate_uuid(), id=None)
+        cdict = dbutils.get_test_brick(
+            configuration=configuration, uuid=utils.generate_uuid(), id=None)
         self.dbapi.create_brick(cdict)
         new_value = 'new value'
         response = self.patch_json('/bricks/%s' % cdict['uuid'],
@@ -156,26 +157,25 @@ class TestPatch(base.FunctionalTest):
         self.assertEqual(configuration, result['configuration'])
 
     def test_remove_singular(self):
-        cdict = apiutils.get_test_brick_json(configuration={'a': 'b'},
-                                         uuid=utils.generate_uuid(),
-                                         id=None)
+        cdict = dbutils.get_test_brick(configuration={'a': 'b'},
+                                       uuid=utils.generate_uuid(),
+                                       id=None)
         self.dbapi.create_brick(cdict)
         response = self.patch_json('/bricks/%s' % cdict['uuid'],
-                                   [{'path': '/description', 'op': 'remove'}])
+                                   [{'path': '/configuration/a', 'op': 'remove'}])
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(200, response.status_code)
         result = self.get_json('/bricks/%s' % cdict['uuid'])
-        self.assertIsNone(result['description'])
 
         # Assert nothing else was changed
         self.assertEqual(cdict['uuid'], result['uuid'])
-        self.assertEqual(cdict['configuration'], result['configuration'])
+        self.assertNotEqual(cdict['configuration'], result['configuration'])
 
     def test_remove_multi(self):
         configuration = {"foo1": "bar1", "foo2": "bar2", "foo3": "bar3"}
-        cdict = apiutils.get_test_brick_json(configuration=configuration, status="in progress",
-                                         uuid=utils.generate_uuid(),
-                                         id=None)
+        cdict = dbutils.get_test_brick(
+            configuration=configuration, status="in progress",
+            uuid=utils.generate_uuid(), id=None)
         self.dbapi.create_brick(cdict)
 
         # Removing one item from the collection
@@ -187,17 +187,17 @@ class TestPatch(base.FunctionalTest):
         configuration.pop("foo2")
         self.assertEqual(configuration, result['configuration'])
 
-        # Removing the collection
+        # Removing the configuration (cannot, mandatory)
         response = self.patch_json('/bricks/%s' % cdict['uuid'],
-                                   [{'path': '/configuration', 'op': 'remove'}])
+                                   [{'path': '/configuration', 'op': 'remove'}],
+                                   expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(200, response.status_code)
+        self.assertEqual(400, response.status_code)
         result = self.get_json('/bricks/%s' % cdict['uuid'])
-        self.assertEqual({}, result['configuration'])
+        self.assertEqual(configuration, result['configuration'])
 
         # Assert nothing else was changed
         self.assertEqual(cdict['uuid'], result['uuid'])
-        self.assertEqual(cdict['description'], result['description'])
 
     def test_remove_non_existent_property_fail(self):
         cdict = apiutils.get_test_brick_json()
@@ -230,13 +230,6 @@ class TestPatch(base.FunctionalTest):
         result = self.get_json('/bricks/%s' % cdict['uuid'])
         expected = {"foo1": "bar1", "foo2": "bar2"}
         self.assertEqual(expected, result['configuration'])
-
-    def test_patch_nodes_subresource(self):
-        cdict = apiutils.get_test_brick_json()
-        response = self.patch_json('/bricks/%s/nodes' % cdict['uuid'],
-                                   [{'path': '/configuration/foo', 'value': 'bar',
-                                     'op': 'add'}], expect_errors=True)
-        self.assertEqual(403, response.status_int)
 
     def test_remove_uuid(self):
         cdict = apiutils.get_test_brick_json()

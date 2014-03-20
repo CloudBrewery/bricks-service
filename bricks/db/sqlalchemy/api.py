@@ -97,13 +97,6 @@ def _paginate_query(model, limit=None, marker=None, sort_key=None,
     return query.all()
 
 
-def _check_brickconfig_in_use(query, query_by):
-    no_reserv = None
-    locked_ref = query.filter(models.Node.reservation != no_reserv).first()
-    if locked_ref:
-        raise exception.NodeLocked(node=locked_ref[query_by],
-                                   host=locked_ref['reservation'])
-
 def _check_brickconfig_in_use(brickconfig, session):
     brickconfig_uuid = brickconfig['uuid']
     if brickconfig_uuid is not None:
@@ -137,6 +130,8 @@ class Connection(api.Connection):
             query = query.filter_by(instance_id=filters['instance_id'])
         if 'status' in filters:
             query = query.filter_by(status=filters['status'])
+        if 'tenant_id' in filters:
+            query = query.filter_by(tenant_id=filters['tenant_id'])
 
         return query
 
@@ -147,7 +142,9 @@ class Connection(api.Connection):
         if 'tag' in filters:
             query = query.filter_by(tag=filters['tag'])
         if 'is_public' in filters:
-            query = query.filter_by(tag=filters['is_public'])
+            query = query.filter_by(is_public=filters['is_public'])
+        if 'tenant_id' in filters:
+            query = query.filter_by(tenant_id=filters['tenant_id'])
 
         return query
 
@@ -173,9 +170,11 @@ class Connection(api.Connection):
         return brick
 
     @objects.objectify(objects.Brick)
-    def get_brick(self, brick_id):
+    def get_brick(self, brick_id, tenant_id=None):
         query = model_query(models.Brick)
         query = add_identity_filter(query, brick_id)
+        if tenant_id:
+            query = query.filter_by(tenant_id=tenant_id)
 
         try:
             return query.one()
@@ -183,11 +182,13 @@ class Connection(api.Connection):
             raise exception.BrickNotFound(brick=brick_id)
 
     @objects.objectify(objects.Brick)
-    def update_brick(self, brick_id, values):
+    def update_brick(self, brick_id, values, tenant_id=None):
         session = get_session()
         with session.begin():
             query = model_query(models.Brick, session=session)
             query = add_identity_filter(query, brick_id)
+            if tenant_id:
+                query = query.filter_by(tenant_id=tenant_id)
 
             count = query.update(values)
             if count != 1:
@@ -195,11 +196,14 @@ class Connection(api.Connection):
             ref = query.one()
         return ref
 
-    def destroy_brick(self, brick_id):
+    def destroy_brick(self, brick_id, tenant_id=None):
         session = get_session()
         with session.begin():
             query = model_query(models.Brick, session=session)
             query = add_identity_filter(query, brick_id)
+
+            if tenant_id:
+                query = query.filter_by(tenant_id=tenant_id)
 
             try:
                 ref = query.one()
@@ -208,10 +212,9 @@ class Connection(api.Connection):
 
             query.delete()
 
-
     @objects.objectify(objects.BrickConfig)
     def get_brickconfig_list(self, filters=None, limit=None, marker=None,
-                              sort_key=None, sort_dir=None):
+                             sort_key=None, sort_dir=None):
         query = model_query(models.BrickConfig)
         query = self._add_brickconfig_filters(query, filters)
         return _paginate_query(models.BrickConfig, limit, marker, sort_key,
@@ -251,7 +254,6 @@ class Connection(api.Connection):
                 raise exception.BrickConfigNotFound(brickconfig=brickconfig_id)
             ref = query.one()
         return ref
-
 
     def destroy_brickconfig(self, brickconfig_id):
         session = get_session()

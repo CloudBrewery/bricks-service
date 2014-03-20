@@ -50,3 +50,37 @@ def init():
 def _set_rules(data):
     default_rule = CONF.policy_default_rule
     policy.set_rules(policy.Rules.load_json(data, default_rule))
+
+
+def enforce(context, action, target, do_raise=True):
+    """Verifies that the action is valid on the target in this context.
+
+       :param context: nova context
+       :param action: string representing the action to be checked
+           this should be colon separated for clarity.
+           i.e. ``compute:create_instance``,
+           ``compute:attach_volume``,
+           ``volume:attach_volume``
+       :param target: dictionary representing the object of the action
+           for object creation this should be a dictionary representing the
+           location of the object e.g. ``{'project_id': context.project_id}``
+       :param do_raise: if True (the default), raises PolicyNotAuthorized;
+           if False, returns False
+
+       :raises nova.exception.PolicyNotAuthorized: if verification fails
+           and do_raise is True.
+
+       :return: returns a non-False value (not necessarily "True") if
+           authorized, and the exact value False if not authorized and
+           do_raise is False.
+    """
+    init()
+
+    credentials = context.to_dict()
+
+    # Add the exception arguments if asked to do a raise
+    extra = {}
+    if do_raise:
+        extra.update(exc=exception.PolicyNotAuthorized, action=action)
+
+    return policy.check(action, target, credentials, **extra)

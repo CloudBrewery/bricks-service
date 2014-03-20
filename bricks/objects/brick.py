@@ -15,6 +15,8 @@ class Brick(base.BricksObject):
 
         'deployed_at': utils.datetime_or_str_or_none,
         'instance_id': utils.str_or_none,
+        'tenant_id': utils.str_or_none,
+
         # One of states. in states
         'status': utils.str_or_none,
 
@@ -34,13 +36,13 @@ class Brick(base.BricksObject):
         return brick
 
     @base.remotable_classmethod
-    def get_by_uuid(cls, context, uuid):
+    def get_by_uuid(cls, context, uuid, tenant_id=None):
         """Find a brick based on uuid and return a Brick object.
 
         :param uuid: the uuid of a brick.
         :returns: a :class:`Brick` object.
         """
-        db_brick = cls.dbapi.get_brick(uuid)
+        db_brick = cls.dbapi.get_brick(uuid, tenant_id)
         return Brick._from_db_object(cls(), db_brick)
 
     @base.remotable
