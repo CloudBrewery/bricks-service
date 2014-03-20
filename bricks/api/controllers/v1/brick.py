@@ -27,6 +27,7 @@ def check_policy(context, action, target_obj=None):
     target = {
         'project_id': context.tenant,
         'user_id': context.user,
+        'is_admin': True,
     }
     target.update(target_obj or {})
     _action = 'brick:%s' % action
