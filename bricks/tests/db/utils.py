@@ -30,7 +30,7 @@ def get_test_brickconfig(**kw):
                        '1be26c0b-03f2-4d2e-ae87-c02d7f33c123'),
         'name': kw.get('name', 'abrickconfig'),
         'version': kw.get('version', 'v0.0'),
-        'is_public': kw.get('is_public', False),
+        'is_public': kw.get('is_public', True),
         'tenant_id': kw.get('tenant_id', 'iamatenant'),
 
         'tag': kw.get('tag', 'testapp'),
@@ -44,5 +44,4 @@ def get_test_brickconfig(**kw):
 
         'created_at': kw.get('created_at'),
         'updated_at': kw.get('updated_at'),
-
     }

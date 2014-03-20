@@ -75,7 +75,9 @@ class BrickConfig(base.APIBase):
     def convert_with_links(cls, rpc_brickconfig, expand=True):
         brickconfig = BrickConfig(**rpc_brickconfig.as_dict())
         if not expand:
-            brickconfig.unset_fields_except(['uuid', 'address'])
+            brickconfig.unset_fields_except([
+                'uuid', 'version', 'name', 'tag', 'description',
+                'app_version', 'created_at', 'updated_at'])
 
         # never expose the node_id attribute
         brickconfig.node_id = wtypes.Unset
@@ -134,12 +136,9 @@ class BrickConfigController(rest.RestController):
         'detail': ['GET'],
     }
 
-    def __init__(self, from_nodes=False):
-        self._from_nodes = from_nodes
-
-    def _get_brickconfigs_collection(self, tag, is_public, marker, limit,
-                                     sort_key, sort_dir, expand=False,
-                                     resource_url=None):
+    def _get_brickconfigs_collection(self, tenant_id, tag, is_public,
+                                     marker, limit, sort_key, sort_dir,
+                                     expand=False, resource_url=None):
 
         limit = api_utils.validate_limit(limit)
         sort_dir = api_utils.validate_sort_dir(sort_dir)
@@ -150,10 +149,24 @@ class BrickConfigController(rest.RestController):
                 pecan.request.context, marker)
 
         filters = {}
-        if tag:
-            filters['tag'] = tag
+
         if is_public:
             filters['is_public'] = is_public
+
+        ctx = pecan.request.context
+        if (tenant_id is not None or
+            is_public is False
+            ) and not ctx.is_admin and tenant_id != ctx.tenant:
+                # only admins can set a non-tenant locked down tenant filter.
+                raise exception.NotAuthorized()
+        elif tenant_id:
+            filters['is_public'] = False
+            filters['tenant_id'] = tenant_id
+        else:
+            filters['is_public'] = True
+
+        if tag:
+            filters['tag'] = tag
 
         brickconfigs = pecan.request.dbapi.get_brickconfig_list(
             filters, limit, marker_obj, sort_key=sort_key,
@@ -163,12 +176,13 @@ class BrickConfigController(rest.RestController):
             brickconfigs, limit, url=resource_url, expand=expand,
             sort_key=sort_key, sort_dir=sort_dir)
 
-    @wsme_pecan.wsexpose(BrickConfigCollection, wtypes.text, types.boolean,
-                         types.uuid, int, wtypes.text, wtypes.text)
-    def get_all(self, tag=None, is_public=None, marker=None,
+    @wsme_pecan.wsexpose(BrickConfigCollection, wtypes.text, wtypes.text,
+                         types.boolean, types.uuid, int, wtypes.text, wtypes.text)
+    def get_all(self, tenant_id=None, tag=None, is_public=None, marker=None,
                 limit=None, sort_key='id', sort_dir='asc'):
         """Retrieve a list of brickconfigs.
 
+        :param tenant_id:
         :param tag:
         :param is_public:
         :param marker: pagination marker for large data sets.
@@ -177,15 +191,16 @@ class BrickConfigController(rest.RestController):
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
         """
         check_policy(pecan.request.context, 'get_all')
-        return self._get_brickconfigs_collection(tag, is_public, marker,
-                                                 limit, sort_key, sort_dir)
+        return self._get_brickconfigs_collection(tenant_id, tag, is_public,
+                                                 marker, limit, sort_key, sort_dir)
 
-    @wsme_pecan.wsexpose(BrickConfigCollection, wtypes.text, types.boolean,
-                         types.uuid, int, wtypes.text, wtypes.text)
-    def detail(self, tag=None, is_public=None, marker=None, limit=None,
-               sort_key='id', sort_dir='asc'):
+    @wsme_pecan.wsexpose(BrickConfigCollection, wtypes.text, wtypes.text,
+                         types.boolean, types.uuid, int, wtypes.text, wtypes.text)
+    def detail(self, tenant_id=None, tag=None, is_public=None, marker=None,
+               limit=None, sort_key='id', sort_dir='asc'):
         """Retrieve a list of brickconfigs with detail.
 
+        :param tenant_id:
         :param tag:
         :param is_public:
         :param marker: pagination marker for large data sets.
@@ -201,8 +216,8 @@ class BrickConfigController(rest.RestController):
 
         expand = True
         resource_url = '/'.join(['brickconfigs', 'detail'])
-        return self._get_brickconfigs_collection(tag, is_public, marker,
-                                                 limit, sort_key, sort_dir,
+        return self._get_brickconfigs_collection(tenant_id, tag, is_public,
+                                                 marker, limit, sort_key, sort_dir,
                                                  expand, resource_url)
 
     @wsme_pecan.wsexpose(BrickConfig, types.uuid)
@@ -212,8 +227,6 @@ class BrickConfigController(rest.RestController):
         :param brickconfig_uuid: UUID of a bc.
         """
         check_policy(pecan.request.context, 'get_one')
-        if self._from_nodes:
-            raise exception.OperationNotPermitted
 
         rpc_brickconfig = objects.BrickConfig.get_by_uuid(
             pecan.request.context, brickconfig_uuid)
@@ -226,8 +239,6 @@ class BrickConfigController(rest.RestController):
         :param brickconfig: a bc within the request body.
         """
         check_policy(pecan.request.context, 'create')
-        if self._from_nodes:
-            raise exception.OperationNotPermitted
 
         try:
             new_bc = pecan.request.dbapi.create_brickconfig(
@@ -246,8 +257,6 @@ class BrickConfigController(rest.RestController):
         :param patch: a json PATCH document to apply to this bc.
         """
         check_policy(pecan.request.context, 'update')
-        if self._from_nodes:
-            raise exception.OperationNotPermitted
 
         rpc_brickconfig = objects.BrickConfig.get_by_uuid(
             pecan.request.context, brickconfig_uuid)
@@ -272,7 +281,5 @@ class BrickConfigController(rest.RestController):
         :param brickconfig_uuid: UUID of a bc.
         """
         check_policy(pecan.request.context, 'delete')
-        if self._from_nodes:
-            raise exception.OperationNotPermitted
 
         pecan.request.dbapi.destroy_brickconfig(brickconfig_uuid)
