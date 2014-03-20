@@ -66,9 +66,19 @@ class FunctionalTest(base.DbTestCase):
 
         return pecan.testing.load_test_app(self.config)
 
+    def _contextify_headers(self, headers, context):
+        if context:
+            headers.update({
+                'X-User-Id': context.user_id,
+                'X-Tenant-Id': context.tenant,
+                'X-Auth-Token': context.auth_token,
+                'X-Roles': 'admin' if context.is_admin else ''
+            })
+        return headers
+
     def _request_json(self, path, params, expect_errors=False, headers=None,
                       method="post", extra_environ=None, status=None,
-                      path_prefix=PATH_PREFIX):
+                      path_prefix=PATH_PREFIX, context=None):
         """Sends simulated HTTP request to Pecan test app.
 
         :param path: url path of target service
@@ -82,7 +92,9 @@ class FunctionalTest(base.DbTestCase):
                               with the request
         :param status: expected status code of response
         :param path_prefix: prefix of the url path
+        :param context: request context
         """
+        self._contextify_headers(headers, context)
         full_path = path_prefix + path
         print('%s: %s %s' % (method.upper(), full_path, params))
         response = getattr(self.app, "%s_json" % method)(
@@ -97,7 +109,7 @@ class FunctionalTest(base.DbTestCase):
         return response
 
     def put_json(self, path, params, expect_errors=False, headers=None,
-                 extra_environ=None, status=None):
+                 extra_environ=None, status=None, context=None):
         """Sends simulated HTTP PUT request to Pecan test app.
 
         :param path: url path of target service
@@ -112,10 +124,10 @@ class FunctionalTest(base.DbTestCase):
         return self._request_json(path=path, params=params,
                                   expect_errors=expect_errors,
                                   headers=headers, extra_environ=extra_environ,
-                                  status=status, method="put")
+                                  status=status, method="put", context=context)
 
     def post_json(self, path, params, expect_errors=False, headers=None,
-                  extra_environ=None, status=None):
+                  extra_environ=None, status=None, context=None):
         """Sends simulated HTTP POST request to Pecan test app.
 
         :param path: url path of target service
@@ -130,10 +142,10 @@ class FunctionalTest(base.DbTestCase):
         return self._request_json(path=path, params=params,
                                   expect_errors=expect_errors,
                                   headers=headers, extra_environ=extra_environ,
-                                  status=status, method="post")
+                                  status=status, method="post", context=context)
 
     def patch_json(self, path, params, expect_errors=False, headers=None,
-                   extra_environ=None, status=None):
+                   extra_environ=None, status=None, context=None):
         """Sends simulated HTTP PATCH request to Pecan test app.
 
         :param path: url path of target service
@@ -148,10 +160,10 @@ class FunctionalTest(base.DbTestCase):
         return self._request_json(path=path, params=params,
                                   expect_errors=expect_errors,
                                   headers=headers, extra_environ=extra_environ,
-                                  status=status, method="patch")
+                                  status=status, method="patch", context=context)
 
     def delete(self, path, expect_errors=False, headers=None,
-               extra_environ=None, status=None, path_prefix=PATH_PREFIX):
+               extra_environ=None, status=None, path_prefix=PATH_PREFIX, context=None):
         """Sends simulated HTTP DELETE request to Pecan test app.
 
         :param path: url path of target service
@@ -163,6 +175,7 @@ class FunctionalTest(base.DbTestCase):
         :param status: expected status code of response
         :param path_prefix: prefix of the url path
         """
+        self._contextify_headers(headers, context)
         full_path = path_prefix + path
         print('DELETE: %s' % (full_path))
         response = self.app.delete(str(full_path),
@@ -174,7 +187,8 @@ class FunctionalTest(base.DbTestCase):
         return response
 
     def get_json(self, path, expect_errors=False, headers=None,
-                 extra_environ=None, q=[], path_prefix=PATH_PREFIX, **params):
+                 extra_environ=None, q=[], path_prefix=PATH_PREFIX,
+                 context=None, **params):
         """Sends simulated HTTP GET request to Pecan test app.
 
         :param path: url path of target service
@@ -188,6 +202,7 @@ class FunctionalTest(base.DbTestCase):
         :param path_prefix: prefix of the url path
         :param params: content for wsgi.input of request
         """
+        self._contextify_headers(headers, context)
         full_path = path_prefix + path
         query_params = {'q.field': [],
                         'q.value': [],
