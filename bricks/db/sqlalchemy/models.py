@@ -109,7 +109,7 @@ class BrickConfig(Base):
 
 
 class Brick(Base):
-    """Represents a bare metal node."""
+    """A Brick."""
 
     __tablename__ = 'brick'
     __table_args__ = (

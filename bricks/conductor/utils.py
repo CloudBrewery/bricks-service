@@ -3,10 +3,13 @@ import json
 import emails
 from emails.template import JinjaTemplate
 
+from bricks.common import exception
 from bricks.common import opencrack
 from bricks.common import states
 from bricks.db import api as dbapi
 from bricks.openstack.common import log
+
+from novaclient import exceptions as nova_exceptions
 
 LOG = log.getLogger(__name__)
 
@@ -15,21 +18,6 @@ BRICKS_URL = 'https://dash-dev.clouda.ca/dockerstack/update'
 
 ##
 # Actions
-def assign_floating_ip_action(req_context, brick_id, floating_ip):
-    """Assign a floating IP to a bricked instance wrapper method called to
-    be called from the manager.
-
-    :param req_context: -
-    :param brick_id: -
-    :param floating_ip: -
-    """
-    db = dbapi.get_instance()
-    brick = db.get_brick(brick_id)
-    _drive_floating_ip(req_context, brick, floating_ip)
-    brick.status = states.NETWORKED
-    brick.save(req_context)
-
-
 def brick_deploy_action(req_context, brick_id):
     """Deploy a brick task called from the manageer.
 
@@ -48,27 +36,59 @@ def brick_deploy_action(req_context, brick_id):
 
     # return an instance ID to assoc the brick
     brick.instance_id = server_id
+    brick.status = states.INIT
     brick.save(req_context)
 
 
-def brick_init_action(req_context, brick_id):
-    """Run init stuff on a brick.
-
-    :param req_context: Request context
-    :param brick_id: Brick UUID
+def brick_deploying_action(req_context, brick_id):
+    """Brick has reached deploying state.
     """
 
     db = dbapi.get_instance()
     brick = db.get_brick(brick_id)
 
-    brick.status = states.INIT
+    brick.status = states.DEPLOYING
+    brick.save(req_context)
+
+
+def brick_deployfail_action(req_context, brick_id):
+    """Brick has failed to deploy
+    """
+
+    db = dbapi.get_instance()
+    brick = db.get_brick(brick_id)
+
+    brick.status = states.DEPLOYFAIL
+    brick.save(req_context)
+
+
+def brick_deploydone_action(req_context, brick_id):
+    """Brick has completed deploying
+    """
+
+    db = dbapi.get_instance()
+    brick = db.get_brick(brick_id)
+    floating_ip = brick.configuration.get("floating_ip")
+
+    if floating_ip:
+        _drive_floating_ip(req_context, brick, floating_ip)
+    brick.status = states.DEPLOYDONE
     brick.save(req_context)
 
 
 def brick_destroy_action(req_context, brick_id):
     """Destroy a brick!
     """
-    pass
+
+    db = dbapi.get_instance()
+    brick = db.get_brick(brick_id)
+
+    try:
+        _destroy_nova_server(req_context, brick.instance_id)
+    except nova_exceptions.NotFound:
+        pass
+
+    db.destroy_brick(brick_id)
 
 
 ##
@@ -101,6 +121,14 @@ def _deploy_nova_server(req_context, brick, brickconfig):
         security_groups=sec_groups)
 
     return server.id
+
+
+def _destroy_nova_server(req_context, instance_id):
+    """Destroys nova instance
+    """
+
+    novaclient = opencrack.build_nova_client(req_context)
+    novaclient.servers.delete(instance_id)
 
 
 def get_userdata():

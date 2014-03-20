@@ -77,8 +77,14 @@ class ConductorManager(service.PeriodicService):
         # utils.brick_deploy_action(context, brick_id)
         self._spawn_worker(utils.brick_deploy_action, context, brick_id)
 
-    def do_brick_init(self, context, brick_id, topic=None):
-        self._spawn_worker(utils.brick_init_action, context, brick_id)
+    def do_brick_deploying(self, context, brick_id, topic=None):
+        self._spawn_worker(utils.brick_deploying_action, context, brick_id)
+
+    def do_brick_deployfail(self, context, brick_id, topic=None):
+        self._spawn_worker(utils.brick_deployfail_action, context, brick_id)
+
+    def do_brick_deploydone(self, context, brick_id, topic=None):
+        self._spawn_worker(utils.brick_deploydone_action, context, brick_id)
 
     def do_brick_destroy(self, context, brick_id, topic=None):
         self._spawn_worker(utils.brick_destroy_action, context, brick_id)
@@ -90,13 +96,6 @@ class ConductorManager(service.PeriodicService):
         brick = self.dbapi.get_brick(brick_id)
         brickconfig = self.dbapi.get_brickconfig(brick.brickconfig_uuid)
         utils.notify_completion(context, brick, brickconfig)
-
-    def assign_floating_ip(self, context, brick_id, floating_ip, topic=None):
-        """Assign a floating IP address to a running instance, per
-        automation.
-        """
-        self._spawn_worker(utils.assign_floating_ip_action, context,
-                           brick_id, floating_ip)
 
     @lockutils.synchronized(WORKER_SPAWN_lOCK, 'bricks-')
     def _spawn_worker(self, func, *args, **kwargs):

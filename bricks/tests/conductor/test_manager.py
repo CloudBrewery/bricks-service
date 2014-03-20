@@ -3,12 +3,15 @@ import time
 import mock
 from oslo.config import cfg
 
+from bricks.common import exception
 from bricks.common import states
 from bricks.conductor import manager
 from bricks.db import api as dbapi
 from bricks.openstack.common import context
 from bricks.tests.db import base
 from bricks.tests.db import utils
+
+from novaclient import exceptions as nova_exceptions
 
 CONF = cfg.CONF
 
@@ -22,8 +25,33 @@ class ManagerTestCase(base.DbTestCase):
         self.dbapi = dbapi.get_instance()
 
     def test_brick_destroy_simple(self):
-        # TODO(thurloat): test brick destroying manager call
-        pass
+        brick_dict = utils.get_test_brick()
+        brick = self.dbapi.create_brick(brick_dict)
+
+        self.service.start()
+
+        with mock.patch('bricks.conductor.utils._destroy_nova_server') \
+                as destroy:
+            destroy.return_value = 204
+            self.service.do_brick_destroy(self.context, brick['uuid'])
+            self.service._worker_pool.waitall()
+            self.assertRaises(exception.BrickNotFound,
+                              brick.refresh, self.context)
+
+    def test_brick_destroy_no_instance(self):
+        brick_dict = utils.get_test_brick()
+        brick = self.dbapi.create_brick(brick_dict)
+
+        self.service.start()
+
+        with mock.patch('bricks.conductor.utils._destroy_nova_server',
+                        side_effect=nova_exceptions.NotFound(
+                            brick['instance_id']
+                        )):
+            self.service.do_brick_destroy(self.context, brick['uuid'])
+            self.service._worker_pool.waitall()
+            self.assertRaises(exception.BrickNotFound,
+                              brick.refresh, self.context)
 
     def test_notify_completion_simple(self):
         # TODO(thurloat): test completion manager call
@@ -37,15 +65,6 @@ class ManagerTestCase(base.DbTestCase):
         brick = self.dbapi.create_brick(brick_dict)
 
         self.service.start()
-        with mock.patch('bricks.conductor.utils._drive_floating_ip') \
-                as flop_action:
-            flop_action.return_value = None
-            self.service.assign_floating_ip(self.context, brick['uuid'],
-                                            '127.0.0.1')
-            self.service._worker_pool.waitall()
-            brick.refresh(self.context)
-            self.assertEqual(brick['status'], states.NETWORKED)
-            flop_action.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY)
 
     def test_brick_deploy_simple(self):
         brickconfig_dict = utils.get_test_brickconfig()
@@ -65,15 +84,54 @@ class ManagerTestCase(base.DbTestCase):
             self.assertEqual(brick['instance_id'], 'asdf-1234')
             deploy.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY)
 
-    def test_brick_init_simple(self):
-        brickconfig_dict = utils.get_test_brickconfig()
-        self.dbapi.create_brickconfig(brickconfig_dict)
-
+    def test_brick_deploying(self):
         brick_dict = utils.get_test_brick()
         brick = self.dbapi.create_brick(brick_dict)
 
         self.service.start()
-        self.assertEqual(brick['status'], states.INIT)
+        self.service.do_brick_deploying(self.context, brick['uuid'])
+        self.service._worker_pool.waitall()
+        brick.refresh(self.context)
+        self.assertEqual(brick['status'], states.DEPLOYING)
+
+    def test_brick_deployfail(self):
+        brick_dict = utils.get_test_brick()
+        brick = self.dbapi.create_brick(brick_dict)
+
+        self.service.start()
+        self.service.do_brick_deployfail(self.context, brick['uuid'])
+        self.service._worker_pool.waitall()
+        brick.refresh(self.context)
+        self.assertEqual(brick['status'], states.DEPLOYFAIL)
+
+    def test_brick_deploydone_without_ip(self):
+        brick_dict = utils.get_test_brick()
+        brick = self.dbapi.create_brick(brick_dict)
+
+        with mock.patch('bricks.conductor.utils._drive_floating_ip') \
+                as flop_action:
+            flop_action.return_value = None
+            self.service.start()
+            self.service.do_brick_deploydone(self.context, brick['uuid'])
+            self.service._worker_pool.waitall()
+            brick.refresh(self.context)
+            self.assertEqual(brick['status'], states.DEPLOYDONE)
+            self.assertEqual(0, flop_action.call_count)
+
+    def test_brick_deploydone_with_ip(self):
+        brick_dict = utils.get_test_brick(
+            configuration={"floating_ip": "127.0.0.1"})
+        brick = self.dbapi.create_brick(brick_dict)
+
+        with mock.patch('bricks.conductor.utils._drive_floating_ip') \
+                as flop_action:
+            flop_action.return_value = None
+            self.service.start()
+            self.service.do_brick_deploydone(self.context, brick['uuid'])
+            self.service._worker_pool.waitall()
+            brick.refresh(self.context)
+            self.assertEqual(brick['status'], states.DEPLOYDONE)
+            self.assertEqual(1, flop_action.call_count)
 
     def test__spawn_worker(self):
         func_mock = mock.Mock()

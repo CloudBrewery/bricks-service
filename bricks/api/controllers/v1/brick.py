@@ -15,6 +15,7 @@ from bricks.api.controllers.v1 import types
 from bricks.api.controllers.v1 import utils as api_utils
 from bricks.common import exception
 from bricks.common import policy
+from bricks.common import states
 from bricks import objects
 from bricks.openstack.common import excutils
 from bricks.openstack.common import log
@@ -26,6 +27,7 @@ def check_policy(context, action, target_obj=None):
     target = {
         'project_id': context.tenant,
         'user_id': context.user,
+        'is_admin': context.is_admin,
     }
     target.update(target_obj or {})
     _action = 'brick:%s' % action
@@ -272,9 +274,13 @@ class BrickController(rest.RestController):
         check_policy(pecan.request.context, 'delete')
         req_ctx = pecan.request.context
         tenant_id = req_ctx.tenant if not req_ctx.is_admin else None
-        pecan.request.dbapi.destroy_brick(brick_uuid, tenant_id=tenant_id)
+        objects.Brick.get_by_uuid(pecan.request.context,
+                                  brick_uuid, tenant_id=tenant_id)
 
-    @wsme_pecan.wsexpose(types.uuid, body=BrickCommand)
+        pecan.request.rpcapi.do_brick_destroy(pecan.request.context,
+                                              brick_uuid)
+
+    @wsme_pecan.wsexpose(Brick, types.uuid, body=BrickCommand)
     def status_update(self, brick_uuid, update):
         """Perform updates on a brick
 
@@ -282,8 +288,12 @@ class BrickController(rest.RestController):
         :param update: json containing update data.
         """
         check_policy(pecan.request.context, 'status_update')
-        if update.type == "init":
-            pecan.request.rpcapi.do_brick_init(pecan.request.context,
-                                               brick_uuid)
-        elif update.type == "complete":
-            pass
+        if update.type == states.DEPLOYING:
+            pecan.request.rpcapi.do_brick_deploying(pecan.request.context,
+                                                    brick_uuid)
+        elif update.type == states.DEPLOYFAIL:
+            pecan.request.rpcapi.do_brick_deployfail(pecan.request.context,
+                                                     brick_uuid)
+        elif update.type == states.DEPLOYDONE:
+            pecan.request.rpcapi.do_brick_deploydone(pecan.request.context,
+                                                     brick_uuid)
