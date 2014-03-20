@@ -68,10 +68,11 @@ class FunctionalTest(base.DbTestCase):
 
     def _contextify_headers(self, headers, context):
         if context:
+            headers = headers or {}
             headers.update({
-                'X-User-Id': context.user_id,
-                'X-Tenant-Id': context.tenant,
-                'X-Auth-Token': context.auth_token,
+                'X-User-Id': context.user or '',
+                'X-Tenant-Id': context.tenant or '',
+                'X-Auth-Token': context.auth_token or '',
                 'X-Roles': 'admin' if context.is_admin else ''
             })
         return headers
@@ -94,7 +95,7 @@ class FunctionalTest(base.DbTestCase):
         :param path_prefix: prefix of the url path
         :param context: request context
         """
-        self._contextify_headers(headers, context)
+        headers = self._contextify_headers(headers, context)
         full_path = path_prefix + path
         print('%s: %s %s' % (method.upper(), full_path, params))
         response = getattr(self.app, "%s_json" % method)(
@@ -175,7 +176,7 @@ class FunctionalTest(base.DbTestCase):
         :param status: expected status code of response
         :param path_prefix: prefix of the url path
         """
-        self._contextify_headers(headers, context)
+        headers = self._contextify_headers(headers, context)
         full_path = path_prefix + path
         print('DELETE: %s' % (full_path))
         response = self.app.delete(str(full_path),
@@ -202,7 +203,8 @@ class FunctionalTest(base.DbTestCase):
         :param path_prefix: prefix of the url path
         :param params: content for wsgi.input of request
         """
-        self._contextify_headers(headers, context)
+        headers = self._contextify_headers(headers, context)
+
         full_path = path_prefix + path
         query_params = {'q.field': [],
                         'q.value': [],
