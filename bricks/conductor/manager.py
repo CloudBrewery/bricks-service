@@ -97,13 +97,6 @@ class ConductorManager(service.PeriodicService):
         brickconfig = self.dbapi.get_brickconfig(brick.brickconfig_uuid)
         utils.notify_completion(context, brick, brickconfig)
 
-    def assign_floating_ip(self, context, brick_id, floating_ip, topic=None):
-        """Assign a floating IP address to a running instance, per
-        automation.
-        """
-        self._spawn_worker(utils.assign_floating_ip_action, context,
-                           brick_id, floating_ip)
-
     @lockutils.synchronized(WORKER_SPAWN_lOCK, 'bricks-')
     def _spawn_worker(self, func, *args, **kwargs):
         """Create a greenthread to run func(*args, **kwargs).

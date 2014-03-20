@@ -335,7 +335,7 @@ class TestStatusUpdate(base.FunctionalTest):
                         {'type': states.DEPLOYING}, context=self.context)
 
             result = self.get_json('/bricks/%s' % cdict['uuid'])
-            self.assertTrue(deploying.call_count == 1)
+            self.assertEqual(1, deploying.call_count)
 
     def test_brick_deployfail(self):
         cdict = dbutils.get_test_brick()
@@ -346,7 +346,7 @@ class TestStatusUpdate(base.FunctionalTest):
                         {'type': states.DEPLOYFAIL}, context=self.context)
 
             result = self.get_json('/bricks/%s' % cdict['uuid'])
-            self.assertTrue(deployfail.call_count == 1)
+            self.assertEqual(1, deployfail.call_count)
 
     def test_brick_deploydone(self):
         cdict = dbutils.get_test_brick()
@@ -357,4 +357,4 @@ class TestStatusUpdate(base.FunctionalTest):
                         {'type': states.DEPLOYDONE}, context=self.context)
 
             result = self.get_json('/bricks/%s' % cdict['uuid'])
-            self.assertTrue(deploydone.call_count == 1)
+            self.assertEqual(1, deploydone.call_count)
