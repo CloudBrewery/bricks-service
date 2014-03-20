@@ -3,6 +3,7 @@ import json
 import emails
 from emails.template import JinjaTemplate
 
+from bricks.common import exception
 from bricks.common import opencrack
 from bricks.common import states
 from bricks.db import api as dbapi
@@ -65,8 +66,10 @@ def brick_deploydone_action(req_context, brick_id):
 
     db = dbapi.get_instance()
     brick = db.get_brick(brick_id)
+    floating_ip = brick.configuration.get("floating_ip")
 
-    _drive_floating_ip(req_context, brick, floating_ip)
+    if floating_ip:
+        _drive_floating_ip(req_context, brick, floating_ip)
     brick.status = states.DEPLOYDONE
     brick.save(req_context)
 

@@ -37,15 +37,6 @@ class ManagerTestCase(base.DbTestCase):
         brick = self.dbapi.create_brick(brick_dict)
 
         self.service.start()
-        with mock.patch('bricks.conductor.utils._drive_floating_ip') \
-                as flop_action:
-            flop_action.return_value = None
-            self.service.assign_floating_ip(self.context, brick['uuid'],
-                                            '127.0.0.1')
-            self.service._worker_pool.waitall()
-            brick.refresh(self.context)
-            self.assertEqual(brick['status'], states.NETWORKED)
-            flop_action.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY)
 
     def test_brick_deploy_simple(self):
         brickconfig_dict = utils.get_test_brickconfig()
@@ -85,15 +76,34 @@ class ManagerTestCase(base.DbTestCase):
         brick.refresh(self.context)
         self.assertEqual(brick['status'], states.DEPLOYFAIL)
 
-    def test_brick_deploydone(self):
+    def test_brick_deploydone_without_ip(self):
         brick_dict = utils.get_test_brick()
         brick = self.dbapi.create_brick(brick_dict)
 
-        self.service.start()
-        self.service.do_brick_deploydone(self.context, brick['uuid'])
-        self.service._worker_pool.waitall()
-        brick.refresh(self.context)
-        self.assertEqual(brick['status'], states.DEPLOYDONE)
+        with mock.patch('bricks.conductor.utils._drive_floating_ip') \
+                as flop_action:
+            flop_action.return_value = None
+            self.service.start()
+            self.service.do_brick_deploydone(self.context, brick['uuid'])
+            self.service._worker_pool.waitall()
+            brick.refresh(self.context)
+            self.assertEqual(brick['status'], states.DEPLOYDONE)
+            self.assertEqual(0, flop_action.call_count)
+
+    def test_brick_deploydone_with_ip(self):
+        brick_dict = utils.get_test_brick(
+            configuration={"floating_ip": "127.0.0.1"})
+        brick = self.dbapi.create_brick(brick_dict)
+
+        with mock.patch('bricks.conductor.utils._drive_floating_ip') \
+                as flop_action:
+            flop_action.return_value = None
+            self.service.start()
+            self.service.do_brick_deploydone(self.context, brick['uuid'])
+            self.service._worker_pool.waitall()
+            brick.refresh(self.context)
+            self.assertEqual(brick['status'], states.DEPLOYDONE)
+            self.assertEqual(1, flop_action.call_count)
 
     def test__spawn_worker(self):
         func_mock = mock.Mock()
