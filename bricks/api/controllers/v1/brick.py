@@ -274,7 +274,15 @@ class BrickController(rest.RestController):
         check_policy(pecan.request.context, 'delete')
         req_ctx = pecan.request.context
         tenant_id = req_ctx.tenant if not req_ctx.is_admin else None
-        pecan.request.dbapi.destroy_brick(brick_uuid, tenant_id=tenant_id)
+        try:
+            objects.Brick.get_by_uuid(pecan.request.context,
+                                      brick_uuid, tenant_id=tenant_id)
+        except exception.BrickNotFound as e:
+            e.code = 404
+            raise e
+
+        pecan.request.rpcapi.do_brick_destroy(pecan.request.context,
+                                              brick_uuid)
 
     @wsme_pecan.wsexpose(Brick, types.uuid, body=BrickCommand)
     def status_update(self, brick_uuid, update):
