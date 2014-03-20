@@ -38,6 +38,11 @@ class ConductorAPI(bricks.openstack.common.rpc.proxy.RpcProxy):
             serializer=objects_base.BricksObjectSerializer(),
             default_version=self.RPC_API_VERSION)
 
+    def do_ping(self, context, topic=None):
+        self.cast(context,
+                  self.make_msg('process_notification', notification={'event_type': 'ping'}),
+                  topic=topic or self.topic)
+
     def do_brick_deploy(self, context, brick_id, topic=None):
         self.cast(context,
                   self.make_msg('do_brick_deploy', brick_id=brick_id),

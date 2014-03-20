@@ -65,7 +65,7 @@ class ConductorManager(service.PeriodicService):
     def initialize_service_hook(self, service):
         pass
 
-    def process_notification(self, notification):
+    def process_notification(self, context, notification=None):
         LOG.debug(_('Received notification: %r') %
                   notification.get('event_type'))
 
