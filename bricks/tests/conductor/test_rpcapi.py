@@ -71,8 +71,16 @@ class RPCAPITestCase(base.DbTestCase):
         self._test_rpcapi('do_brick_deploy', 'cast',
                           brick_id=self.fake_brick['uuid'])
 
-    def test_do_brick_init(self):
-        self._test_rpcapi('do_brick_init', 'cast',
+    def test_do_brick_deploying(self):
+        self._test_rpcapi('do_brick_deploying', 'cast',
+                          brick_id=self.fake_brick['uuid'])
+
+    def test_do_brick_deployfail(self):
+        self._test_rpcapi('do_brick_deployfail', 'cast',
+                          brick_id=self.fake_brick['uuid'])
+
+    def test_do_brick_deploydone(self):
+        self._test_rpcapi('do_brick_deploydone', 'cast',
                           brick_id=self.fake_brick['uuid'])
 
     def test_do_brick_destroy(self):
