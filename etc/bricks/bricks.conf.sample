@@ -379,6 +379,29 @@
 # database, in seconds. (integer value)
 #sync_power_state_interval=60
 
+[mortar]
+
+#
+# Options defined in bricks.mortar.manager
+#
+
+# URL of Bricks API service. If not set bricks can get the
+# current value from the keystone service catalog. (string
+# value)
+#api_url=<None>
+
+# Seconds between mortar service heart beats. (integer value)
+#heartbeat_interval=10
+
+# Maximum time (in seconds) since the last check-in of a
+# mortar. (integer value)
+#heartbeat_timeout=60
+
+# Interval between syncing the node power state to the
+# database, in seconds. (integer value)
+#sync_power_state_interval=60
+
+
 
 [database]
 
