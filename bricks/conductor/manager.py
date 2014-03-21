@@ -11,14 +11,15 @@ from eventlet import greenpool
 from oslo.config import cfg
 
 from bricks.common import exception
-from bricks.common import opencrack
 from bricks.common import service
 from bricks.db import api as dbapi
 from bricks.objects import base as objects_base
 from bricks.openstack.common import lockutils
 from bricks.openstack.common import log
+from bricks.openstack.common import periodic_task
 
 from bricks.conductor import utils
+from bricks.mortar import rpcapi as mortar_rpcapi
 
 MANAGER_TOPIC = 'bricks.conductor_manager'
 WORKER_SPAWN_lOCK = "conductor_worker_spawn"
@@ -58,6 +59,7 @@ class ConductorManager(service.PeriodicService):
     def start(self):
         super(ConductorManager, self).start()
         self.dbapi = dbapi.get_instance()
+        self.mortar_rpcapi = mortar_rpcapi.MortarAPI()
 
         # GreenPool of background workers for performing tasks async.
         self._worker_pool = greenpool.GreenPool(size=CONF.rpc_thread_pool_size)
@@ -96,6 +98,26 @@ class ConductorManager(service.PeriodicService):
         brick = self.dbapi.get_brick(brick_id)
         brickconfig = self.dbapi.get_brickconfig(brick.brickconfig_uuid)
         utils.notify_completion(context, brick, brickconfig)
+
+    @periodic_task.periodic_task(spacing=CONF.conductor.heartbeat_interval * 3)
+    def heartbeat_keepalive_all_instances(self, context):
+        """Reach out to all instances to get a heartbeat.
+        """
+        bricks = self.dbapi.get_brick_list()
+        instances = [brick.instance_id for brick in bricks]
+        self.mortar_rpcapi.do_check_instances(context, instances)
+
+    def do_task_report(self, context, results):
+        """Do task results!!!!!!!!!!!!!!!!!!
+
+        Mortar executed some things, now we're hearing back about how those
+        things went.
+        :param results: ([[instance_id (int),
+                           passed (boolean),
+                           message (string)], ])
+        """
+        LOG.debug("received task report from Mortar.")
+        pass
 
     @lockutils.synchronized(WORKER_SPAWN_lOCK, 'bricks-')
     def _spawn_worker(self, func, *args, **kwargs):

@@ -42,3 +42,9 @@ class MortarAPI(bricks.openstack.common.rpc.proxy.RpcProxy):
         self.cast(context,
                   self.make_msg('do_execute', execution_list=execution_list),
                   topic=topic or self.topic)
+
+    def do_check_instances(self, context, instance_list, topic=None):
+        self.cast(context,
+                  self.make_msg('do_check_instances',
+                                instance_list=instance_list),
+                  topic=topic or self.topic)

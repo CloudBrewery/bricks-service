@@ -13,7 +13,7 @@ from oslo.config import cfg
 
 from bricks.common import exception
 from bricks.common import service
-from bricks.db import api as dbapi
+from bricks.conductor import rpcapi as conductor_rpcapi
 from bricks.objects import base as objects_base
 from bricks.openstack.common import lockutils
 from bricks.openstack.common import log
@@ -57,7 +57,7 @@ class MortarManager(service.PeriodicService):
 
     def start(self):
         super(MortarManager, self).start()
-        self.dbapi = dbapi.get_instance()
+        self.conductor_rpcapi = conductor_rpcapi.ConductorAPI()
 
         # GreenPool of background workers for performing tasks async.
         self._worker_pool = greenpool.GreenPool(size=CONF.rpc_thread_pool_size)
@@ -73,8 +73,23 @@ class MortarManager(service.PeriodicService):
         """Pass along the execution list to the execution driver for further
         processing.
         """
+        def worker_callback(worker_results):
+            self.conductor_rpcapi.do_task_report(worker_results)
+
         LOG.debug('received some things to do!', execution_list)
-        self._spawn_worker(utils.do_execute, context, execution_list)
+        worker = self._spawn_worker(utils.do_execute, context, execution_list)
+        worker.link(worker_callback)
+
+    def do_check_instances(self, context, instance_list, topic=None):
+        """Do a health check on instances, and report back over rmq the
+        health of any that you know about.
+        """
+        def worker_cb(worker_results):
+            self.conductor_rpcapi.do_task_report(worker_results)
+
+        worker = self._spawn_worker(utils.do_health_check, context,
+                                    instance_list)
+        worker.link(worker_cb)
 
     def periodic_tasks(self, context, raise_on_error=False):
         """Periodic tasks are run at pre-specified interval."""
