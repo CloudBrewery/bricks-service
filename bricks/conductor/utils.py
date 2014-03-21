@@ -281,4 +281,9 @@ def do_task_report(results):
 
     :param results: [MortarTaskResult, ]
     """
+    for result in results:
+        if not result.test_result:
+            LOG.warning(
+                "Something Failed for instance %s, %s" % (
+                    result.instance_id, result.message))
     pass
