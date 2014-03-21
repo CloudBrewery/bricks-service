@@ -23,7 +23,6 @@ from bricks.mortar import utils
 MANAGER_TOPIC = 'bricks.mortar_manager'
 WORKER_SPAWN_lOCK = "mortar_worker_spawn"
 
-
 LOG = log.getLogger(__name__)
 
 mortar_opts = [
@@ -73,8 +72,8 @@ class MortarManager(service.PeriodicService):
         """Pass along the execution list to the execution driver for further
         processing.
         """
-        def worker_callback(worker_results):
-            self.conductor_rpcapi.do_task_report(worker_results)
+        def worker_callback(gt, *args, **kwargs):
+            self.conductor_rpcapi.do_task_report(context, gt.wait())
 
         LOG.debug('received some things to do!', execution_list)
         worker = self._spawn_worker(utils.do_execute, context, execution_list)
@@ -84,8 +83,10 @@ class MortarManager(service.PeriodicService):
         """Do a health check on instances, and report back over rmq the
         health of any that you know about.
         """
-        def worker_cb(worker_results):
-            self.conductor_rpcapi.do_task_report(worker_results)
+        LOG.debug('Doing health Check, as commanded by my conductor.')
+
+        def worker_cb(gt, *args, **kwargs):
+            self.conductor_rpcapi.do_task_report(context, gt.wait())
 
         worker = self._spawn_worker(utils.do_health_check, context,
                                     instance_list)
