@@ -4,7 +4,6 @@ Client side of the conductor RPC API.
 
 from oslo.config import cfg
 
-from bricks.mortar import manager
 from bricks.objects import base as objects_base
 import bricks.openstack.common.rpc.proxy
 
@@ -24,8 +23,7 @@ class MortarAPI(bricks.openstack.common.rpc.proxy.RpcProxy):
     RPC_API_VERSION = '1.0'
 
     def __init__(self, topic=None):
-        if topic is None:
-            topic = manager.MANAGER_TOPIC
+        topic = 'bricks.mortar_manager'
 
         super(MortarAPI, self).__init__(
             topic=topic,

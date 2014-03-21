@@ -99,7 +99,7 @@ class ConductorManager(service.PeriodicService):
         brickconfig = self.dbapi.get_brickconfig(brick.brickconfig_uuid)
         utils.notify_completion(context, brick, brickconfig)
 
-    @periodic_task.periodic_task(spacing=CONF.conductor.heartbeat_interval * 3)
+    @periodic_task.periodic_task(spacing=CONF.conductor.heartbeat_interval)
     def heartbeat_keepalive_all_instances(self, context):
         """Reach out to all instances to get a heartbeat.
         """
