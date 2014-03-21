@@ -82,8 +82,3 @@ class RPCAPITestCase(base.DbTestCase):
     def test_notify_completion(self):
         self._test_rpcapi('notify_completion', 'cast',
                           brick_id=self.fake_brick['uuid'])
-
-    def test_assign_floating_ip(self):
-        self._test_rpcapi('assign_floating_ip', 'cast',
-                          brick_id=self.fake_brick['uuid'],
-                          floating_ip='127.0.0.1')

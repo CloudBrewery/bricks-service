@@ -48,11 +48,6 @@ class ConductorAPI(bricks.openstack.common.rpc.proxy.RpcProxy):
                   self.make_msg('do_brick_deploy', brick_id=brick_id),
                   topic=topic or self.topic)
 
-    def do_brick_init(self, context, brick_id, topic=None):
-        self.cast(context,
-                  self.make_msg('do_brick_init', brick_id=brick_id),
-                  topic=topic or self.topic)
-
     def do_brick_deploying(self, context, brick_id, topic=None):
         self.cast(context,
                   self.make_msg('do_brick_deploying', brick_id=brick_id),
@@ -76,11 +71,4 @@ class ConductorAPI(bricks.openstack.common.rpc.proxy.RpcProxy):
     def notify_completion(self, context, brick_id, topic=None):
         self.cast(context,
                   self.make_msg('notify_completion', brick_id=brick_id),
-                  topic=topic or self.topic)
-
-    def assign_floating_ip(self, context, brick_id, floating_ip, topic=None):
-        self.cast(context,
-                  self.make_msg('assign_floating_ip',
-                                brick_id=brick_id,
-                                floating_ip=floating_ip),
                   topic=topic or self.topic)
