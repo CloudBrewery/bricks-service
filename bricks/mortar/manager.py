@@ -18,6 +18,8 @@ from bricks.objects import base as objects_base
 from bricks.openstack.common import lockutils
 from bricks.openstack.common import log
 
+from bricks.mortar import utils
+
 MANAGER_TOPIC = 'bricks.mortar_manager'
 WORKER_SPAWN_lOCK = "mortar_worker_spawn"
 
