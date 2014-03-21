@@ -1,12 +1,5 @@
-import mock
-
-from bricks.common import utils as bricks_utils
-from bricks.db import api as db_api
-from bricks.db.sqlalchemy import models
 from bricks import objects
-
 from bricks.tests.db import base
-from bricks.tests.db import utils
 
 
 class TestMortarTaskObject(base.DbTestCase):
