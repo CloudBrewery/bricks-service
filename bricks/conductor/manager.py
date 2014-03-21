@@ -112,11 +112,10 @@ class ConductorManager(service.PeriodicService):
 
         Mortar executed some things, now we're hearing back about how those
         things went.
-        :param results: ([[instance_id (int),
-                           passed (boolean),
-                           message (string)], ])
+        :param results: [MortarTaskResult, ]
         """
         LOG.debug("received task report from Mortar.")
+        self._spawn_worker(utils.do_task_report, context, results)
         pass
 
     @lockutils.synchronized(WORKER_SPAWN_lOCK, 'bricks-')

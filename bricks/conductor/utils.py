@@ -273,3 +273,12 @@ def send_admin_notification(configuration, meta):
     """Notify us that a brick has been installed."""
     LOG.warning("Brick %s installed" % configuration['name'],
                 extra={'stack': True})
+
+
+def do_task_report(results):
+    """Records task results, and does things with them: updates state or
+    what have you
+
+    :param results: [MortarTaskResult, ]
+    """
+    pass
