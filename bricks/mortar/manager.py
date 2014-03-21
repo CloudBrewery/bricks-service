@@ -67,16 +67,16 @@ class MortarManager(service.PeriodicService):
         LOG.debug(_('Received notification: %r') %
                   notification.get('event_type'))
 
-    def do_execute(self, context, execution_list):
-        # receive a list of things to execute on remote hosts.
-        pass
+    def do_execute(self, context, execution_list, topic=None):
+        """Pass along the execution list to the execution driver for further
+        processing.
+        """
+        LOG.debug('received some things to do!', execution_list)
+        self._spawn_worker(utils.do_execute, context, execution_list)
 
     def periodic_tasks(self, context, raise_on_error=False):
         """Periodic tasks are run at pre-specified interval."""
         return self.run_periodic_tasks(context, raise_on_error=raise_on_error)
-
-    def do_execute(self, context, execution_list, topic=None):
-        LOG.debug('received some things to do!', execution_list)
 
     @lockutils.synchronized(WORKER_SPAWN_lOCK, 'bricks-mortar-')
     def _spawn_worker(self, func, *args, **kwargs):
