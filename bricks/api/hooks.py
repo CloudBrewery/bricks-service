@@ -81,21 +81,6 @@ class RPCHook(hooks.PecanHook):
         state.request.rpcapi = rpcapi.ConductorAPI()
 
 
-class AdminAuthHook(hooks.PecanHook):
-    """Verify that the user has admin rights.
-
-    Checks whether the request context is an admin context and
-    rejects the request otherwise.
-
-    """
-    def before(self, state):
-        ctx = state.request.context
-        is_admin_api = policy.check('admin_api', {}, ctx.to_dict())
-
-        if not is_admin_api and not ctx.is_public_api:
-            raise exc.HTTPForbidden()
-
-
 class NoExceptionTracebackHook(hooks.PecanHook):
     """Workaround rpc.common: deserialize_remote_exception.
 
