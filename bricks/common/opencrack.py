@@ -11,9 +11,9 @@ logger = log.getLogger(__name__)
 
 
 def build_nova_client(req_context):
-    c = nova_client.Client(req_context.auth_token.username,
-                           req_context.auth_token.id,
-                           project_id=req_context.auth_token.tenant_id,
+    c = nova_client.Client(req_context.user,
+                           req_context.auth_token,
+                           project_id=req_context.tenant,
                            auth_url=keystone.get_service_url('compute'),
                            insecure=False)
     c.client.auth_token = req_context.auth_token

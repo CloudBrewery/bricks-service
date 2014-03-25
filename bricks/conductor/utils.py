@@ -199,7 +199,7 @@ def prepare_instance_meta(req_context, brick, brickconfig):
     tmp = {
         'BRICKS_API': BRICKS_URL,
         'BRICKS_UUID': brick.uuid,
-        'TOKEN_ID': req_context.auth_token.id,
+        'TOKEN_ID': req_context.auth_token,
     }
 
     for k, v in tmp.items():
@@ -216,8 +216,8 @@ def _drive_floating_ip(req_context, brick, floating_ip):
     action_url = '/servers/%s/action' % brick.instance_id
 
     opencrack.api_request('compute',
-                          req_context.auth_token.id,
-                          req_context.auth_token.tenant_id,
+                          req_context.auth_token,
+                          req_context.tenant,
                           action_url,
                           action)
 
