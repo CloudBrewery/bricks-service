@@ -23,7 +23,8 @@ class MortarAPI(bricks.openstack.common.rpc.proxy.RpcProxy):
     RPC_API_VERSION = '1.0'
 
     def __init__(self, topic=None):
-        topic = 'bricks.mortar_manager'
+
+        topic = topic if topic else 'bricks.mortar_manager'
 
         super(MortarAPI, self).__init__(
             topic=topic,

@@ -29,7 +29,7 @@ class ConductorAPI(bricks.openstack.common.rpc.proxy.RpcProxy):
     RPC_API_VERSION = '1.0'
 
     def __init__(self, topic=None):
-        topic = 'bricks.conductor_manager'
+        topic = topic if topic else 'bricks.conductor_manager'
 
         super(ConductorAPI, self).__init__(
             topic=topic,
