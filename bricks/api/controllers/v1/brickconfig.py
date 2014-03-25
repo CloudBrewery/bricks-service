@@ -78,7 +78,7 @@ class BrickConfig(base.APIBase):
         if not expand:
             brickconfig.unset_fields_except([
                 'uuid', 'version', 'name', 'tag', 'description',
-                'app_version', 'created_at', 'updated_at'])
+                'app_version', 'created_at', 'updated_at', 'logo'])
 
         # never expose the node_id attribute
         brickconfig.node_id = wtypes.Unset
