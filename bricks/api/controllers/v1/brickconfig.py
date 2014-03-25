@@ -55,6 +55,7 @@ class BrickConfig(base.APIBase):
     description = wtypes.text
     logo = wtypes.text
     app_version = wtypes.text
+    minimum_requirement = wtypes.text
     ports = [wtypes.text]
     # simplified as a dict, will require keys:
     #  name

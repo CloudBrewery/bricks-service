@@ -18,6 +18,7 @@ class BrickConfig(base.BricksObject):
         'description': utils.str_or_none,
         'logo': utils.str_or_none,
         'app_version': utils.str_or_none,
+        'minimum_requirement': utils.str_or_none,
 
         'ports': utils.list_or_none,
         'environ': utils.dict_or_none,
