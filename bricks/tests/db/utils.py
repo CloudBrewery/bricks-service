@@ -16,7 +16,7 @@ def get_test_brick(**kw):
                               '1be26c0b-03f2-4d2e-ae87-c02d7f33c781'),
         'tenant_id': kw.get('tenant_id', 'mister-tenant'),
         'status': kw.get('status', states.NOSTATE),
-        'configuration': kw.get('configuration', {}),
+        'configuration': kw.get('configuration', {'test': 'test'}),
         'deploy_log': kw.get('deploy_log', 'this\nis\na\ntest\n'),
         'created_at': kw.get('created_at'),
         'updated_at': kw.get('updated_at'),
@@ -40,7 +40,7 @@ def get_test_brickconfig(**kw):
 
         'ports': kw.get('ports', []),
         'environ': kw.get('environ', {}),
-        'email_template': kw.get('email_template', 'you have a brick now.. grats.'),
+        'email_template': kw.get('email_template', 'you have a {{ brick.configuration.test }} now.. grats.'),
 
         'created_at': kw.get('created_at'),
         'updated_at': kw.get('updated_at'),

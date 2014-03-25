@@ -1,7 +1,8 @@
 import json
 
 import emails
-from emails.template import JinjaTemplate
+from emails.template import JinjaTemplate as T
+
 
 from bricks.common import exception
 from bricks.common import opencrack
@@ -232,46 +233,39 @@ def notify_completion(req_context, brick, brickconfig):
     # get email address
     email_address = req_context.user.username
 
-    # get the instance details
-    instance_response = opencrack.api_request(
-        'compute',
-        req_context.auth_token.id,
-        req_context.auth_token.tenant_id,
-        '/servers/%s' % brick.instance_id, method='GET')
-
-    server_details = instance_response.json()['server']
-    meta = server_details['metadata']
-
     # send the notification to the user
-    send_installation_notification(email_address, brickconfig, meta)
-    send_admin_notification(brickconfig, meta)
+    send_admin_notification(brick, brickconfig)
+    send_installation_notification(email_address, brick, brickconfig)
 
 
-def send_installation_notification(email, brickconfig, meta):
+def send_installation_notification(email, brick, brickconfig):
     """Send the user who installed the Dockerstack app an email notifying them
     that the installation is complete, and tells them anything extra they
     need to know about configuring or logging into the system.
 
-    Args:
-        email (string) - .
-        configuration (dict) - the application config from app_settings that
-                            was installed.
-        meta (dict) - the information that was fed to the server's metadata
+    :param email:
+    :param brick:
+    :param brickconfig:
     """
-    message = emails.html(text=JinjaTemplate(brickconfig.email_template),
+
+    message = emails.html(text=T(brickconfig.email_template),
                           subject="Your brick is laid",
                           mail_from="support@clouda.ca")
-
     ctx = {
-        'meta': meta,
+        'brick': brick,
         'config': brickconfig
     }
+
     message.send(to=email, render=ctx)
 
 
-def send_admin_notification(configuration, meta):
-    """Notify us that a brick has been installed."""
-    LOG.warning("Brick %s installed" % configuration['name'],
+def send_admin_notification(brick, brickconfig):
+    """Notify us that a brick has been installed.
+
+    :param brick:
+    :param brickconfig:
+    """
+    LOG.warning("Brick %s installed" % brickconfig.name,
                 extra={'stack': True})
 
 
