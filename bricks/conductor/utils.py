@@ -131,6 +131,8 @@ def _destroy_nova_server(req_context, instance_id):
 
 
 def get_userdata():
+    LOG.warning('get_userdata is not implemented.')
+    return None
     # load the bootfile for passing to the server on create.
     import dockerstack_agent.bootfile
     userdata_path = dockerstack_agent.bootfile.path()

@@ -11,6 +11,7 @@ from bricks.openstack.common import log
 logger = log.getLogger(__name__)
 
 CONF = cfg.CONF
+CONF.import_group('keystone_authtoken', 'keystoneclient.middleware.auth_token')
 
 
 def build_nova_client(req_context):
