@@ -106,6 +106,7 @@ def _deploy_nova_server(req_context, brick, brickconfig):
             "v4-fixed-ip": ""}]
 
     novaclient = opencrack.build_nova_client(req_context)
+    novaclient.authenticate()
     server = novaclient.servers.create(
         brickconfig.name,
         image,
