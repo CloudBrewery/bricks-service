@@ -130,7 +130,7 @@ class BrickController(rest.RestController):
         ###
         # Tenant Filter Removed or Applied Here
         ###
-        if not ctx.is_admin and not tenant_id == ctx.tenant:
+        if not ctx.is_admin and not tenant_id == ctx.tenant_id:
             # only admins can set a non-tenant locked down tenant filter.
             raise exception.NotAuthorized()
         elif tenant_id:
