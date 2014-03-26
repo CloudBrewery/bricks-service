@@ -1,6 +1,4 @@
-import json
 import socket
-import struct
 
 FORMAT = '!I'
 FORMAT_LEN = 4
@@ -12,9 +10,7 @@ def do_health_check(req_context, instance_list):
 
 
 def socket_send(sock, message):
-    data = json.dumps(message)
-    header = struct.pack(FORMAT, len(data))
-    sock.sendall(''.join([header, data]).join('\n'))
+    sock.sendall(''.join('BOF\n').join(message).join('\nEOF'))
 
 
 def do_execute(req_context, execution_list):
@@ -30,12 +26,13 @@ def do_execute(req_context, execution_list):
         ##TODO: CHANGE THIS BACK
         #socket_file = "/tmp/mortar/%s.socket" % task.instance_id
         socket_file = "/tmp/instance123.socket"
-        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        sock.settimeout(SOCKET_TIMEOUT)
 
         try:
+            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            sock.settimeout(SOCKET_TIMEOUT)
             sock.connect(socket_file)
+            socket_send(sock, task.raw_command)
         except socket.error:
             continue
-
-        socket_send(sock, task.raw_command)
+        finally:
+            sock.close()
