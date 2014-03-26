@@ -1,30 +1,32 @@
 import json
 import requests
 
+from oslo.config import cfg
+
 from keystoneclient.v2_0 import client as keystone_client
 from novaclient.v1_1 import client as nova_client
 
-from bricks.common import keystone
 from bricks.openstack.common import log
 
 logger = log.getLogger(__name__)
 
+CONF = cfg.CONF
+CONF.import_group('keystone_authtoken', 'keystoneclient.middleware.auth_token')
+
 
 def build_nova_client(req_context):
-    c = nova_client.Client(req_context.auth_token.username,
-                           req_context.auth_token.id,
-                           project_id=req_context.auth_token.tenant_id,
-                           auth_url=keystone.get_service_url('compute'),
+    c = nova_client.Client(req_context.user,
+                           req_context.auth_token,
+                           project_id=req_context.tenant,
+                           auth_url=CONF.keystone_authtoken.auth_uri,
                            insecure=False)
     c.client.auth_token = req_context.auth_token
-    c.client.management_url = keystone.get_service_url('compute')
     return c
 
 
 def build_keystone_client(token_id):
     return keystone_client.Client(token=token_id,
-                                  endpoint=keystone.get_service_url(
-                                      'keystone'))
+                                  endpoint=CONF.keystone_authtoken.auth_uri)
 
 
 def get_keystone_token(keystone_client, token_id, tenant_id):
@@ -67,7 +69,8 @@ def api_request(catalog_type, token_id, tenant_id, url, data=None,
     # Use requests to post to the API url, since the nova client blows
     server_url = "%s%s" % (endpoint, url)
     if data:
-        resp = requests.request(method, server_url, headers=headers, data=json.dumps(data))
+        resp = requests.request(method, server_url, headers=headers,
+                                data=json.dumps(data))
     else:
         resp = requests.request(method, server_url, headers=headers)
 

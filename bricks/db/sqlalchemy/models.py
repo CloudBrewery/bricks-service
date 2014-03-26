@@ -101,6 +101,7 @@ class BrickConfig(Base):
     description = Column(Text, nullable=True)
     logo = Column(String(255), nullable=True)
     app_version = Column(String(36), nullable=True)
+    minimum_requirement = Column(String(36), nullable=True)
 
     ports = Column(JSONEncodedList, nullable=True)
     # environ is going to exist as a DICT for now and use weights for ordering.

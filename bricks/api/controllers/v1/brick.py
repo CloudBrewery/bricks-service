@@ -130,7 +130,7 @@ class BrickController(rest.RestController):
         ###
         # Tenant Filter Removed or Applied Here
         ###
-        if not ctx.is_admin and not tenant_id == ctx.tenant:
+        if not ctx.is_admin and not tenant_id == ctx.tenant_id:
             # only admins can set a non-tenant locked down tenant filter.
             raise exception.NotAuthorized()
         elif tenant_id:
@@ -215,7 +215,7 @@ class BrickController(rest.RestController):
         """
         check_policy(pecan.request.context, 'get_one')
         req_ctx = pecan.request.context
-        tenant_id = req_ctx.tenant if not req_ctx.is_admin else None
+        tenant_id = req_ctx.tenant_id if not req_ctx.is_admin else None
         rpc_brick = objects.Brick.get_by_uuid(pecan.request.context,
                                               brick_uuid, tenant_id=tenant_id)
         return Brick.convert_with_links(rpc_brick)
@@ -248,7 +248,7 @@ class BrickController(rest.RestController):
         check_policy(pecan.request.context, 'update')
 
         req_ctx = pecan.request.context
-        tenant_id = req_ctx.tenant if not req_ctx.is_admin else None
+        tenant_id = req_ctx.tenant_id if not req_ctx.is_admin else None
         rpc_brick = objects.Brick.get_by_uuid(pecan.request.context,
                                               brick_uuid, tenant_id=tenant_id)
         try:
@@ -273,7 +273,7 @@ class BrickController(rest.RestController):
         """
         check_policy(pecan.request.context, 'delete')
         req_ctx = pecan.request.context
-        tenant_id = req_ctx.tenant if not req_ctx.is_admin else None
+        tenant_id = req_ctx.tenant_id if not req_ctx.is_admin else None
         objects.Brick.get_by_uuid(pecan.request.context,
                                   brick_uuid, tenant_id=tenant_id)
 

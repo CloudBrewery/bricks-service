@@ -1,10 +1,7 @@
-import json
-
 import emails
 from emails.template import JinjaTemplate as T
 
 
-from bricks.common import exception
 from bricks.common import opencrack
 from bricks.common import states
 from bricks.db import api as dbapi
@@ -109,6 +106,7 @@ def _deploy_nova_server(req_context, brick, brickconfig):
             "v4-fixed-ip": ""}]
 
     novaclient = opencrack.build_nova_client(req_context)
+    novaclient.authenticate()
     server = novaclient.servers.create(
         brickconfig.name,
         image,
@@ -133,6 +131,8 @@ def _destroy_nova_server(req_context, instance_id):
 
 
 def get_userdata():
+    LOG.warning('get_userdata is not implemented.')
+    return None
     # load the bootfile for passing to the server on create.
     import dockerstack_agent.bootfile
     userdata_path = dockerstack_agent.bootfile.path()
@@ -142,36 +142,54 @@ def get_userdata():
 def ensure_security_groups(req_context, brickconfig):
     """Ensure a security group is created or already exists for the user
     under the name, and make sure it has the correct ports open.
+
+    :param req_context: populated request context
+    :param brickconfig: brickconfig with port configuration
     """
 
     g_id = []
     exists = False
 
-    novaclient = opencrack.build_nova_client(req_context)
-    sec_groups = novaclient.security_groups.list()
+    sec_groups = opencrack.api_request(
+        'compute', req_context.auth_token, req_context.tenant_id,
+        '/os-security-groups', method='GET'
+    ).json()
 
-    for group in sec_groups:
-        if group.name == u"%s" % brickconfig.name:
+    for group in sec_groups['security_groups']:
+        if group['name'] == u"%s" % brickconfig.name:
             exists = True
-            g_id.append(group.id)
+            g_id.append(group['id'])
             break
 
     if not exists:
         # if it doesn't exist, create it and make sure all the ports are bound.
-        sec_group = novaclient.security_groups.create(
-            brickconfig.name,
-            "Auto-generated security group for %s" % brickconfig.name)
+        sec_group_data = {
+            'security_group': {
+                'name': brickconfig.name,
+                'description': 'Auto-generated security group for %s' % brickconfig.name
+            }
+        }
+        sec_group = opencrack.api_request(
+            'compute', req_context.auth_token, req_context.tenant_id,
+            '/os-security-groups', data=sec_group_data
+        ).json().get('security_group')
 
-        g_id.append(sec_group.id)
+        g_id.append(sec_group['id'])
 
         for port in brickconfig.ports:
-            novaclient.security_group_rules.create(
-                sec_group.id,
-                'tcp',
-                port,
-                port,
-                '0.0.0.0/0',
-                None)
+            port_data = {
+                'security_group_rule': {
+                    'ip_protocol': 'tcp',
+                    'from_port': port,
+                    'to_port': port,
+                    'cidr': '0.0.0.0/0',
+                    'parent_group_id': sec_group['id'],
+                    'group_id': None
+                }
+            }
+            opencrack.api_request(
+                'compute', req_context.auth_token, req_context.tenant_id,
+                '/os-security-group-rules', data=port_data)
 
     return g_id
 
@@ -199,7 +217,7 @@ def prepare_instance_meta(req_context, brick, brickconfig):
     tmp = {
         'BRICKS_API': BRICKS_URL,
         'BRICKS_UUID': brick.uuid,
-        'TOKEN_ID': req_context.auth_token.id,
+        'TOKEN_ID': req_context.auth_token,
     }
 
     for k, v in tmp.items():
@@ -216,8 +234,8 @@ def _drive_floating_ip(req_context, brick, floating_ip):
     action_url = '/servers/%s/action' % brick.instance_id
 
     opencrack.api_request('compute',
-                          req_context.auth_token.id,
-                          req_context.auth_token.tenant_id,
+                          req_context.auth_token,
+                          req_context.tenant,
                           action_url,
                           action)
 

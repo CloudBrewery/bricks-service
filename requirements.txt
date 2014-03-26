@@ -17,10 +17,8 @@ sqlalchemy-migrate>=0.8.2
 netaddr>=0.7.6
 paramiko>=1.9.0
 iso8601>=0.1.8
-python-neutronclient>=2.3.3,<3
 python-novaclient==2.15.0
-python-glanceclient>=0.9.0
-python-keystoneclient>=0.5.0
+python-keystoneclient==0.3.2
 stevedore>=0.14
 websockify>=0.5.1,<0.6
 oslo.config>=1.2.0
