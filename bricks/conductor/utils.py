@@ -108,7 +108,7 @@ def _deploy_nova_server(req_context, brick, brickconfig):
     novaclient = opencrack.build_nova_client(req_context)
     novaclient.authenticate()
     server = novaclient.servers.create(
-        brickconfig.name,
+        brick.configuration['name'],
         image,
         brick.configuration['flavour'],
         meta=meta,
