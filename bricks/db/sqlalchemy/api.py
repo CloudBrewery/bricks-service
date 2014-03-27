@@ -206,11 +206,14 @@ class Connection(api.Connection):
                 query = query.filter_by(tenant_id=tenant_id)
 
             try:
-                ref = query.one()
+                query.one()
             except NoResultFound:
                 raise exception.BrickNotFound(brick=brick_id)
 
             query.delete()
+
+    #################
+    # BrickConfig API
 
     @objects.objectify(objects.BrickConfig)
     def get_brickconfig_list(self, filters=None, limit=None, marker=None,
@@ -270,4 +273,59 @@ class Connection(api.Connection):
 
             query.delete()
 
+    #####################
+    # BrickConfigFile API
 
+    @objects.objectify(objects.BrickConfigFile)
+    def get_brickconfigfile_list(self, filters=None, limit=None,
+                                 marker=None, sort_key=None, sort_dir=None):
+        query = model_query(models.BrickConfigFile)
+        query = self._add_brickconfigfile_filters(query, filters)
+        return _paginate_query(models.BrickConfigFile, limit, marker, sort_key,
+                               sort_dir, query)
+
+    @objects.objectify(objects.BrickConfigFile)
+    def create_brickconfigfile(self, values):
+        if not values.get('uuid'):
+            values['uuid'] = utils.generate_uuid()
+
+        bcf = models.BrickConfigFile()
+        bcf.update(values)
+        bcf.save()
+        return bcf
+
+    @objects.objectify(objects.BrickConfigFile)
+    def get_brickconfigfile(self, bcf_id):
+        query = model_query(models.BrickConfigFile)
+        query = add_identity_filter(query, bcf_id)
+
+        try:
+            return query.one()
+        except NoResultFound:
+            raise exception.BrickConfigFileNotFound(brickconfigfile=bcf_id)
+
+    @objects.objectify(objects.BrickConfigFile)
+    def update_brickconfigfile(self, bcf_id, values):
+        session = get_session()
+        with session.begin():
+            query = model_query(models.BrickConfigFile, session=session)
+            query = add_identity_filter(query, bcf_id)
+
+            count = query.update(values)
+            if count != 1:
+                raise exception.BrickConfigFileNotFound(brickconfigfile=bcf_id)
+            ref = query.one()
+        return ref
+
+    def destroy_brickconfigfile(self, bcf_id):
+        session = get_session()
+        with session.begin():
+            query = model_query(models.BrickConfigFile, session=session)
+            query = add_identity_filter(query, bcf_id)
+
+            try:
+                query.one()
+            except NoResultFound:
+                raise exception.BrickConfigFileNotFound(brickconfig=bcf_id)
+
+            query.delete()
