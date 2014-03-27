@@ -1,3 +1,5 @@
+import os
+
 import emails
 from emails.template import JinjaTemplate as T
 
@@ -131,11 +133,8 @@ def _destroy_nova_server(req_context, instance_id):
 
 
 def get_userdata():
-    LOG.warning('get_userdata is not implemented.')
-    return None
-    # load the bootfile for passing to the server on create.
-    import dockerstack_agent.bootfile
-    userdata_path = dockerstack_agent.bootfile.path()
+    userdata_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                 "../common/nova_userdata.sh")
     return open(userdata_path, 'r')
 
 
