@@ -78,16 +78,14 @@ class Brick(base.APIBase):
             brick.unset_fields_except(['uuid', 'brickconfig_uuid',
                                        'deployed_at', 'instance_id',
                                        'status'])
-        else:
-
-            brick.links = [
-                link.Link.make_link('self',
-                                    pecan.request.host_url,
-                                    'bricks', brick.uuid),
-                link.Link.make_link('bookmark',
-                                    pecan.request.host_url,
-                                    'bricks', brick.uuid)
-            ]
+        brick.links = [
+            link.Link.make_link('self',
+                                pecan.request.host_url,
+                                'bricks', brick.uuid),
+            link.Link.make_link('bookmark',
+                                pecan.request.host_url,
+                                'bricks', brick.uuid)
+        ]
         return brick
 
 

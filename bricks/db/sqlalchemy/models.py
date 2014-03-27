@@ -109,18 +109,19 @@ class BrickConfig(Base):
     email_template = Column(Text, nullable=True)
 
 
-class BrickConfigFile(Base):
+class ConfigFile(Base):
     __tablename__ = 'brickconfig_file'
     __table_args__ = (
-        schema.UniqueConstraint('uuid', name='uniq_brickconfig_file0uuid'),
+        schema.UniqueConstraint('uuid', name='uniq_configfile0uuid'),
+        Index('configfile_brickconfig_uuid', 'brickconfig_uuid'),
     )
 
     id = Column(Integer, primary_key=True)
     uuid = Column(String(36))
+    brickconfig_uuid = Column(String(36))
     name = Column(String(255))
     description = Column(Text, nullable=True)
     contents = Column(Text, nullable=True)
-
 
 
 class Brick(Base):

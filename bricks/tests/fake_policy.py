@@ -14,6 +14,11 @@ policy_data = """
       "brickconfig:delete": "rule:admin_api",
       "brickconfig:update": "rule:admin_api",
       "brickconfig:get_one": "",
-      "brickconfig:get_all": ""
+      "brickconfig:get_all": "",
+      "configfile:create": "rule:admin_api",
+      "configfile:delete": "rule:admin_api",
+      "configfile:update": "rule:admin_api",
+      "configfile:get_one": "",
+      "configfile:get_all": ""
 }
 """

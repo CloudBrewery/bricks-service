@@ -148,6 +148,16 @@ class Connection(api.Connection):
 
         return query
 
+    def _add_configfile_filters(self, query, filters):
+        if filters is None:
+            filters = {}
+
+        if 'brickconfig_uuid' in filters:
+            query = query.filter_by(
+                brickconfig_uuid=filters['brickconfig_uuid'])
+
+        return query
+
     @objects.objectify(objects.Brick)
     def get_brick_list(self, filters=None, limit=None, marker=None,
                        sort_key=None, sort_dir=None):
@@ -274,58 +284,58 @@ class Connection(api.Connection):
             query.delete()
 
     #####################
-    # BrickConfigFile API
+    # ConfigFile API
 
-    @objects.objectify(objects.BrickConfigFile)
-    def get_brickconfigfile_list(self, filters=None, limit=None,
-                                 marker=None, sort_key=None, sort_dir=None):
-        query = model_query(models.BrickConfigFile)
-        query = self._add_brickconfigfile_filters(query, filters)
-        return _paginate_query(models.BrickConfigFile, limit, marker, sort_key,
+    @objects.objectify(objects.ConfigFile)
+    def get_configfile_list(self, filters=None, limit=None,
+                            marker=None, sort_key=None, sort_dir=None):
+        query = model_query(models.ConfigFile)
+        query = self._add_configfile_filters(query, filters)
+        return _paginate_query(models.ConfigFile, limit, marker, sort_key,
                                sort_dir, query)
 
-    @objects.objectify(objects.BrickConfigFile)
-    def create_brickconfigfile(self, values):
+    @objects.objectify(objects.ConfigFile)
+    def create_configfile(self, values):
         if not values.get('uuid'):
             values['uuid'] = utils.generate_uuid()
 
-        bcf = models.BrickConfigFile()
+        bcf = models.ConfigFile()
         bcf.update(values)
         bcf.save()
         return bcf
 
-    @objects.objectify(objects.BrickConfigFile)
-    def get_brickconfigfile(self, bcf_id):
-        query = model_query(models.BrickConfigFile)
+    @objects.objectify(objects.ConfigFile)
+    def get_configfile(self, bcf_id):
+        query = model_query(models.ConfigFile)
         query = add_identity_filter(query, bcf_id)
 
         try:
             return query.one()
         except NoResultFound:
-            raise exception.BrickConfigFileNotFound(brickconfigfile=bcf_id)
+            raise exception.ConfigFileNotFound(configfile=bcf_id)
 
-    @objects.objectify(objects.BrickConfigFile)
-    def update_brickconfigfile(self, bcf_id, values):
+    @objects.objectify(objects.ConfigFile)
+    def update_configfile(self, bcf_id, values):
         session = get_session()
         with session.begin():
-            query = model_query(models.BrickConfigFile, session=session)
+            query = model_query(models.ConfigFile, session=session)
             query = add_identity_filter(query, bcf_id)
 
             count = query.update(values)
             if count != 1:
-                raise exception.BrickConfigFileNotFound(brickconfigfile=bcf_id)
+                raise exception.ConfigFileNotFound(configfile=bcf_id)
             ref = query.one()
         return ref
 
-    def destroy_brickconfigfile(self, bcf_id):
+    def destroy_configfile(self, bcf_id):
         session = get_session()
         with session.begin():
-            query = model_query(models.BrickConfigFile, session=session)
+            query = model_query(models.ConfigFile, session=session)
             query = add_identity_filter(query, bcf_id)
 
             try:
                 query.one()
             except NoResultFound:
-                raise exception.BrickConfigFileNotFound(brickconfig=bcf_id)
+                raise exception.ConfigFileNotFound(configfile=bcf_id)
 
             query.delete()

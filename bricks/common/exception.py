@@ -188,6 +188,10 @@ class BrickConfigNotFound(NotFound):
     message = _("Could not find brickconfig %(brickconfig)s")
 
 
+class ConfigFileNotFound(NotFound):
+    message = _("Could not find config file %(configfile)s")
+
+
 class MortarTaskTimeout(NotFound):
     message = _("Timed out while waiting for mortar task.")
 
