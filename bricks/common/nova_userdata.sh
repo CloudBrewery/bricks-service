@@ -14,7 +14,7 @@ echo "Installing deps"
 echo "--------------------------"
 
 apt-get update
-apt-get install -y git python-dev gcc supervisor
+apt-get install -y git python-dev gcc supervisor python-pip
 
 echo "--------------------------"
 echo "Installing occupant"
