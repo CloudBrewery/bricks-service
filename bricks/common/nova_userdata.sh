@@ -24,6 +24,8 @@ git clone https://bitbucket.org/clouda/bricks-occupant.git
 cd bricks-occupant
 pip install -r requirements.txt 
 python setup.py install
+cd /
+rm -Rf $BUILD_DIR
 
 echo "--------------------------"
 echo "Configure supervisor"
