@@ -20,7 +20,7 @@ echo "--------------------------"
 echo "Installing occupant"
 echo "--------------------------"
 
-git clone git@bitbucket.org:clouda/bricks-occupant.git
+git clone https://bitbucket.org/clouda/bricks-occupant.git 
 cd bricks-occupant
 pip install -r requirements.txt 
 python setup.py install
