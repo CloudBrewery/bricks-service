@@ -1,3 +1,4 @@
+import os
 import socket
 
 FORMAT = '!I'
@@ -9,11 +10,11 @@ def do_health_check(req_context, instance_list):
     return instance_list
 
 
-def socket_send(sock, message):
-    sock.sendall(''.join('BOF\n').join(message).join('\nEOF'))
+def socket_send(sock, message, filename=None):
+    sock.sendall(''.join('BOF %s\n' % filename).join(message).join('EOF\n'))
 
 
-def do_execute(req_context, execution_list):
+def do_execute(req_context, task):
     """Executes a list of arbitrary shit from the conductor, it will
     receive all tasks, so it needs to determine which hosts locally it can
     send commands to, and do so.
@@ -22,17 +23,22 @@ def do_execute(req_context, execution_list):
     :param execution_list ([objects.MortarTask, ]): A list of tasks to do
     work on.
     """
-    for task in execution_list:
-        ##TODO: CHANGE THIS BACK
-        #socket_file = "/tmp/mortar/%s.socket" % task.instance_id
-        socket_file = "/tmp/instance123.socket"
+    ##TODO: CHANGE THIS BACK
+    #socket_file = "/tmp/mortar/%s.socket" % task.instance_id
+    socket_file = "/tmp/instance123.socket"
 
-        try:
-            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            sock.settimeout(SOCKET_TIMEOUT)
-            sock.connect(socket_file)
-            socket_send(sock, task.raw_command)
-        except socket.error:
-            continue
-        finally:
-            sock.close()
+    if not os.path.exists(socket_file):
+        return
+
+    try:
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        sock.settimeout(SOCKET_TIMEOUT)
+        sock.connect(socket_file)
+        sock.sendall("StartStream\n")
+        for filename, contents in task.configuration:
+            socket_send(sock, contents, filename=filename)
+        sock.sendall("StopStream\n")
+    except socket.error:
+        pass
+    finally:
+        sock.close()

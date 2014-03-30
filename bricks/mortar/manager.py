@@ -68,15 +68,15 @@ class MortarManager(service.PeriodicService):
         LOG.debug(_('Received notification: %r') %
                   notification.get('event_type'))
 
-    def do_execute(self, context, execution_list, topic=None):
+    def do_execute(self, context, execution_task, topic=None):
         """Pass along the execution list to the execution driver for further
         processing.
         """
         def worker_callback(gt, *args, **kwargs):
             self.conductor_rpcapi.do_task_report(context, gt.wait())
 
-        LOG.debug('received some things to do!', execution_list)
-        worker = self._spawn_worker(utils.do_execute, context, execution_list)
+        LOG.debug('received some things to do!', execution_task)
+        worker = self._spawn_worker(utils.do_execute, context, execution_task)
         worker.link(worker_callback)
 
     def do_check_instances(self, context, instance_list, topic=None):

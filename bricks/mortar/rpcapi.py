@@ -37,9 +37,9 @@ class MortarAPI(bricks.openstack.common.rpc.proxy.RpcProxy):
                                 notification={'event_type': 'ping'}),
                   topic=topic or self.topic)
 
-    def do_execute(self, context, execution_list, topic=None):
+    def do_execute(self, context, execution_task, topic=None):
         self.cast(context,
-                  self.make_msg('do_execute', execution_list=execution_list),
+                  self.make_msg('do_execute', execution_task=execution_task),
                   topic=topic or self.topic)
 
     def do_check_instances(self, context, instance_list, topic=None):
