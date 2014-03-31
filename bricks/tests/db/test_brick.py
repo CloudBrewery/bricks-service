@@ -47,6 +47,11 @@ class DbBrickTestCase(base.DbTestCase):
 
         self.assertEqual(brick.id, br['id'])
 
+    def test_get_brick_by_instance_id(self):
+        br = self._create_test_brick(instance_id="abc123")
+        brick = self.dbapi.get_brick(brick_id=None, instance_id="abc123")
+        self.assertEqual(brick.uuid, br['uuid'])
+
     def test_get_brick_that_does_not_exist(self):
         self.assertRaises(exception.BrickNotFound,
                           self.dbapi.get_brick, 1337)
