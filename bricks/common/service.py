@@ -11,7 +11,7 @@ from bricks.openstack.common.rpc import service as rpc_service
 
 service_opts = [
     cfg.IntOpt('periodic_interval',
-               default=60,
+               default=5,
                help='Seconds between running periodic tasks.'),
     cfg.StrOpt('host',
                default=socket.getfqdn(),

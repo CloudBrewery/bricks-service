@@ -36,8 +36,11 @@ conductor_opts = [
                      'get the current value from the keystone service '
                      'catalog.')),
     cfg.IntOpt('heartbeat_interval',
-               default=10,
+               default=60,
                help='Seconds between conductor heart beats.'),
+    cfg.IntOpt('init_job_interval',
+               default=15,
+               help='Foo.'),
     cfg.IntOpt('heartbeat_timeout',
                default=60,
                help='Maximum time (in seconds) since the last check-in '
@@ -101,15 +104,7 @@ class ConductorManager(service.PeriodicService):
         brickconfig = self.dbapi.get_brickconfig(brick.brickconfig_uuid)
         utils.notify_completion(context, brick, brickconfig)
 
-    @periodic_task.periodic_task(spacing=CONF.conductor.heartbeat_interval)
-    def heartbeat_keepalive_all_instances(self, context):
-        """Reach out to all instances to get a heartbeat.
-        """
-        bricks = self.dbapi.get_brick_list()
-        instances = [brick.instance_id for brick in bricks]
-        self.mortar_rpcapi.do_check_instances(context, instances)
-
-    @periodic_task.periodic_task(spacing=CONF.conductor.heartbeat_interval / 2)
+    @periodic_task.periodic_task(spacing=CONF.conductor.init_job_interval)
     def initiate_initialized_bricks(self, context):
         """Bootstrap all instances that are in "init" state with their
         brickconfig files.
@@ -137,6 +132,15 @@ class ConductorManager(service.PeriodicService):
                 task.configuration[cf.name] = rendered_file
 
             self.mortar_rpcapi.do_execute(context, task)
+
+    @periodic_task.periodic_task(spacing=CONF.conductor.heartbeat_interval)
+    def heartbeat_keepalive_all_instances(self, context):
+        """Reach out to all instances to get a heartbeat.
+        """
+        bricks = self.dbapi.get_brick_list()
+        instances = [brick.instance_id for brick in bricks]
+        self.mortar_rpcapi.do_check_instances(context, instances)
+
 
     def do_check_last_task(self, context, instance_id, task_status):
         """A report back from mortar that a task has been completed.
