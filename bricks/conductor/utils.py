@@ -193,18 +193,6 @@ def ensure_security_groups(req_context, brickconfig):
     return g_id
 
 
-def get_tgz_downloads(brickconfig):
-    """Literally
-
-    """
-    tgz_download = [app_settings.DOCKERSTACK_BRICKINIT, ]
-    for dep in brickconfig.dockerstack_url:
-        tgz_download.append(dep)
-    tgz_download.append(app_settings.DOCKERSTACK_BRICKDONE)
-
-    return tgz_download
-
-
 def prepare_instance_meta(req_context, brick, brickconfig):
     """Prepares a set of metadata to get injected into an instance while the
     deploy is happening so Dockerstack can initialize fully.
