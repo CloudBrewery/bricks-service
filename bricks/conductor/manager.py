@@ -168,8 +168,8 @@ class ConductorManager(service.PeriodicService):
         :param task_status: constant in `bricks.objects.mortar_task`
         """
         from bricks.objects.mortar_task import (COMPLETE, RUNNING, ERROR,
-                                                INSUFF, STATES)
-        assert task_status in STATES
+                                                INSUFF, STATE_LIST)
+        assert task_status in STATE_LIST
 
         brick = self.dbapi.get_brick(brick_id=None, instance_id=instance_id)
 
@@ -177,10 +177,10 @@ class ConductorManager(service.PeriodicService):
             # brick is just initializing, and we're waiting to hear back from
             # mortar on whether the task ahs been accepted.
             if task_status == RUNNING:
-                brick.state = states.DEPLOYING
+                brick.status = states.DEPLOYING
 
             elif task_status == ERROR:
-                brick.state = states.DEPLOYFAIL
+                brick.status = states.DEPLOYFAIL
 
             brick.save(context)
 
@@ -188,10 +188,10 @@ class ConductorManager(service.PeriodicService):
             # brick is already deploying, and this is in response to a status
             # check rpc call.
             if task_status == COMPLETE:
-                brick.state = states.DEPLOYDONE
+                brick.status = states.DEPLOYDONE
 
             elif task_status == ERROR:
-                brick.state = states.DEPLOYFAIL
+                brick.status = states.DEPLOYFAIL
 
             brick.save(context)
 
