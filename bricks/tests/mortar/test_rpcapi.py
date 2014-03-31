@@ -2,6 +2,7 @@ import fixtures
 
 from oslo.config import cfg
 
+from bricks import objects
 from bricks.mortar import rpcapi as mortar_rpcapi
 from bricks.openstack.common import context
 from bricks.tests.db import base
@@ -53,4 +54,6 @@ class RPCAPITestCase(base.DbTestCase):
             self.assertEqual(arg, expected_arg)
 
     def test_do_execute(self):
-        self._test_rpcapi('do_execute', 'cast', execution_list=[])
+        self._test_rpcapi(
+            'do_execute', 'cast',
+            execution_task=objects.MortarTask().obj_to_primitive())

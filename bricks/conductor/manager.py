@@ -107,6 +107,11 @@ class ConductorManager(service.PeriodicService):
         instances = [brick.instance_id for brick in bricks]
         self.mortar_rpcapi.do_check_instances(context, instances)
 
+    def do_check_last_task(self, context, instance_id, task_status):
+        """A report back from mortar that a task has been completed.
+        """
+        pass
+
     def do_task_report(self, context, results):
         """Do task results!!!!!!!!!!!!!!!!!!
 
@@ -116,7 +121,6 @@ class ConductorManager(service.PeriodicService):
         """
         LOG.debug("received task report from Mortar.")
         self._spawn_worker(utils.do_task_report, context, results)
-        pass
 
     @lockutils.synchronized(WORKER_SPAWN_lOCK, 'bricks-')
     def _spawn_worker(self, func, *args, **kwargs):
