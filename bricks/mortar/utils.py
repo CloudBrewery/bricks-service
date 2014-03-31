@@ -1,10 +1,11 @@
 import os
 import socket
 
+from bricks.objects.mortar_task import STATE_LIST
+
 SOCKET_TIMEOUT = 10
 SOCKET_PATH_PREFIX = "/tmp/bricks/"
 LOG_PATH_PREFIX = "/var/log/bricks/instances/"
-STATES = ['TASK-COMPLETE', 'TASK-ERROR', 'TASK-RUNNING', 'INSUFFICIENT-DATA']
 
 
 def do_health_check(req_context, instance_list):
@@ -62,11 +63,11 @@ def do_check_last_task(req_context, instance_id):
     line_num = -1
     line = lines[line_num:]
 
-    while line not in STATES:
+    while line not in STATE_LIST:
         line_num -= 1
         line = lines[line_num]
 
-    if line not in STATES:
+    if line not in STATE_LIST:
         return 'INSUFFICIENT-DATA'
 
     return line
