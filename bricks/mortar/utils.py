@@ -10,16 +10,17 @@ LOG_PATH_PREFIX = "/var/log/bricks/instances/"
 
 
 def get_running_instances():
-    conn = libvirt.openReadOnly(None)
+    conn = libvirt.openReadOnly("qemu:///system")
 
-    libvirt_instances = conn.listDomainsID()
+    libvirt_instances = conn.listAllDomains(
+        libvirt.VIR_CONNECT_LIST_DOMAINS_ACTIVE)
     instances = []
 
     for instance in libvirt_instances:
-        if instance.isActive():
-            instances.append(instance.UUID())
+        instances.append(instance.UUIDString())
 
     return instances
+
 
 def do_health_check(req_context, instance_list):
     return instance_list
