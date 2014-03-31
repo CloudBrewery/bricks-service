@@ -298,3 +298,11 @@ def do_task_report(results):
                 "Something Failed for instance %s, %s" % (
                     result.instance_id, result.message))
     pass
+
+
+def render_config_file(configfile, brick, brickconfig):
+    """Render a configfile template using the appropriate configuration
+    and variables loaded from the brick env and brickconfig.
+    """
+    tpl = T(configfile.contents)
+    return tpl.render(brick=brick, brickconfig=brickconfig)

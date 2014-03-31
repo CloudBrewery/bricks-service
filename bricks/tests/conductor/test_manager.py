@@ -133,6 +133,20 @@ class ManagerTestCase(base.DbTestCase):
             self.assertEqual(brick['status'], states.DEPLOYDONE)
             self.assertEqual(1, flop_action.call_count)
 
+    @mock.patch('bricks.mortar.rpcapi.MortarAPI.do_execute')
+    @mock.patch('bricks.conductor.utils.render_config_file')
+    def test_templating_configfiles(self, render_fn, do_exec):
+
+        self.dbapi.create_brickconfig(utils.get_test_brickconfig())
+        self.dbapi.create_configfile(utils.get_test_configfile())
+
+        self.dbapi.create_brick(utils.get_test_brick(status=states.INIT))
+
+        self.service.start()
+        self.service.initiate_initialized_bricks(self.context)
+        self.assertEqual(1, render_fn.call_count)
+        self.assertEqual(1, do_exec.call_count)
+
     def test__spawn_worker(self):
         func_mock = mock.Mock()
         args = (1, 2, "test")

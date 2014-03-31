@@ -31,6 +31,44 @@ class DestroyTestCase(base.DbTestCase):
         self.dbapi = dbapi.get_instance()
 
 
+class ConfigFileTestCase(base.DbTestCase):
+    def setUp(self):
+        super(ConfigFileTestCase, self).setUp()
+        self.context = context.get_admin_context()
+        self.dbapi = dbapi.get_instance()
+
+    def test_render_simple(self):
+        test_brick = self.dbapi.create_brick(
+            test_utils.get_test_brick())
+        test_brick_config = self.dbapi.create_brickconfig(
+            test_utils.get_test_brickconfig())
+        test_configfile = self.dbapi.create_configfile(
+            test_utils.get_test_configfile(
+                contents="ENV: {{ brickconfig.name }}"))
+
+        rendered = utils.render_config_file(test_configfile, test_brick,
+                                            test_brick_config)
+        self.assertEqual("ENV: abrickconfig", rendered)
+
+    def test_render_using_configuration(self):
+        test_brick = self.dbapi.create_brick(
+            test_utils.get_test_brick(configuration={'hostname': 'foobar'}))
+        test_brick_config = self.dbapi.create_brickconfig(
+            test_utils.get_test_brickconfig())
+        test_configfile = self.dbapi.create_configfile(
+            test_utils.get_test_configfile(
+                contents="""
+ENV: {{ brickconfig.name }}
+RUN: echo '{{ brick.configuration.hostname }}'"""))
+
+        rendered = utils.render_config_file(test_configfile, test_brick,
+                                            test_brick_config)
+        comp_rendered = u"""
+ENV: abrickconfig
+RUN: echo 'foobar'"""
+        self.assertEqual(comp_rendered, rendered)
+
+
 class IPAssignTestCase(base.DbTestCase):
 
     def setUp(self):

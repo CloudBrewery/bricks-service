@@ -12,8 +12,10 @@ from oslo.config import cfg
 
 from bricks.common import exception
 from bricks.common import service
+from bricks.common import states
 from bricks.db import api as dbapi
 from bricks.objects import base as objects_base
+from bricks.objects import MortarTask
 from bricks.openstack.common import lockutils
 from bricks.openstack.common import log
 from bricks.openstack.common import periodic_task
@@ -106,6 +108,35 @@ class ConductorManager(service.PeriodicService):
         bricks = self.dbapi.get_brick_list()
         instances = [brick.instance_id for brick in bricks]
         self.mortar_rpcapi.do_check_instances(context, instances)
+
+    @periodic_task.periodic_task(spacing=CONF.conductor.heartbeat_interval / 2)
+    def initiate_initialized_bricks(self, context):
+        """Bootstrap all instances that are in "init" state with their
+        brickconfig files.
+        """
+
+        bricks_to_prep = self.dbapi.get_brick_list(
+            filters={'status': states.INIT})
+
+        for brick in bricks_to_prep:
+            # prepare payload for brick
+            bc = self.dbapi.get_brickconfig(brick.brickconfig_uuid)
+
+            config_files = self.dbapi.get_configfile_list(
+                filters={'brickconfig_uuid': brick.brickconfig_uuid})
+
+            task = MortarTask()
+            task.instance_id = brick.instance_id
+            task.configuration = {}
+
+            for cf in config_files:
+                # render templated configfiles for the brick, and build the
+                # task for execution.
+                rendered_file = utils.render_config_file(cf, brick, bc)
+
+                task.configuration[cf.name] = rendered_file
+
+            self.mortar_rpcapi.do_execute(context, task)
 
     def do_check_last_task(self, context, instance_id, task_status):
         """A report back from mortar that a task has been completed.
