@@ -73,11 +73,13 @@ class MortarManager(service.PeriodicService):
         processing.
         """
         def worker_callback(gt, *args, **kwargs):
-            self.conductor_rpcapi.do_task_report(context, gt.wait())
+            self.conductor_rpcapi.do_report_last_task(
+                context, execution_task.instance_id, gt.wait())
 
-        LOG.debug('received some things to do!', execution_task)
-        worker = self._spawn_worker(utils.do_execute, context, execution_task)
-        worker.link(worker_callback)
+        if execution_task.instance_id in utils.get_running_instances():
+            LOG.debug('received some things to do!', execution_task)
+            worker = self._spawn_worker(utils.do_execute, context, execution_task)
+            worker.link(worker_callback)
 
     def do_check_instances(self, context, instance_list, topic=None):
         """Do a health check on instances, and report back over rmq the
@@ -99,7 +101,7 @@ class MortarManager(service.PeriodicService):
         LOG.debug('Checking on instance %s.' % instance_id)
 
         def worker_callback(gt, *args, **kwargs):
-            self.conductor_rpcapi.do_check_last_task(context,
+            self.conductor_rpcapi.do_report_last_task(context,
                                                      instance_id, gt.wait())
 
         worker = self._spawn_worker(utils.do_check_last_task, context,

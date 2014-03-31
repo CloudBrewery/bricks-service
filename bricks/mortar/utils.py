@@ -1,12 +1,25 @@
+import libvirt
 import os
 import socket
 
-from bricks.objects.mortar_task import STATE_LIST
+from bricks.objects import mortar_task
 
 SOCKET_TIMEOUT = 10
 SOCKET_PATH_PREFIX = "/tmp/bricks/"
 LOG_PATH_PREFIX = "/var/log/bricks/instances/"
 
+
+def get_running_instances():
+    conn = libvirt.openReadOnly(None)
+
+    libvirt_instances = conn.listDomainsID()
+    instances = []
+
+    for instance in libvirt_instances:
+        if instance.isActive():
+            instances.append(instance.UUID())
+
+    return instances
 
 def do_health_check(req_context, instance_list):
     return instance_list
@@ -30,7 +43,7 @@ def do_execute(req_context, task):
     socket_file = "/tmp/instance123.socket"
 
     if not os.path.exists(socket_file):
-        return
+        return mortar_task.ERROR
 
     try:
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -41,9 +54,11 @@ def do_execute(req_context, task):
             socket_send(sock, contents, filename=filename)
         sock.sendall("StopStream\n")
     except socket.error:
-        pass
+        return mortar_task.ERROR
     finally:
         sock.close()
+
+    return mortar_task.RUNNING
 
 
 def do_check_last_task(req_context, instance_id):
@@ -57,17 +72,17 @@ def do_check_last_task(req_context, instance_id):
     try:
         log = open(log_file, "r")
     except:
-        return 'INSUFFICIENT-DATA'
+        return mortar_task.INSUFF
 
     lines = log.readlines()
     line_num = -1
     line = lines[line_num:]
 
-    while line not in STATE_LIST:
+    while line not in mortar_task.STATE_LIST:
         line_num -= 1
         line = lines[line_num]
 
-    if line not in STATE_LIST:
-        return 'INSUFFICIENT-DATA'
+    if line not in mortar_task.STATE_LIST:
+        return mortar_task.INSUFF
 
     return line
