@@ -180,9 +180,21 @@ class Connection(api.Connection):
         return brick
 
     @objects.objectify(objects.Brick)
-    def get_brick(self, brick_id, tenant_id=None):
+    def get_brick(self, brick_id, tenant_id=None, instance_id=None):
+        """Get an individual brick
+
+        :param brick_id: an id like object (id or uuid)
+        :param tenant_id: a tenant filter (to 404 unauthorized access)
+        :param instance_id: instance filter, if provided overrides brick_id
+                            for primary lookup.
+        """
         query = model_query(models.Brick)
-        query = add_identity_filter(query, brick_id)
+
+        if instance_id is not None:
+            query = query.filter_by(instance_id=instance_id)
+        else:
+            query = add_identity_filter(query, brick_id)
+
         if tenant_id:
             query = query.filter_by(tenant_id=tenant_id)
 

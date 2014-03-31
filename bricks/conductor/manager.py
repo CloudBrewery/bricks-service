@@ -40,7 +40,10 @@ conductor_opts = [
                help='Seconds between conductor heart beats.'),
     cfg.IntOpt('init_job_interval',
                default=15,
-               help='Foo.'),
+               help='Seconds between job initialization tasks.'),
+    cfg.IntOpt('deploying_job_interval',
+               default=5,
+               help='Seconds between deploying job checks.'),
     cfg.IntOpt('heartbeat_timeout',
                default=60,
                help='Maximum time (in seconds) since the last check-in '
@@ -133,6 +136,23 @@ class ConductorManager(service.PeriodicService):
 
             self.mortar_rpcapi.do_execute(context, task)
 
+    @periodic_task.periodic_task(spacing=CONF.conductor.deploying_job_interval)
+    def check_deploying_bricks(self, context):
+        """Check mortar for instances that are deploying to see their task
+        progression.
+        """
+
+        bricks_to_check = self.dbapi.get_brick_list(
+            filters={'status': states.DEPLOYING})
+
+        for brick in bricks_to_check:
+            if brick.instance_id:
+                self.mortar_rpcapi.do_check_last_task(context,
+                                                      brick.instance_id)
+            else:
+                LOG.warning("Brick %s in deploying state without instance "
+                            "ID" % brick.uuid)
+
     @periodic_task.periodic_task(spacing=CONF.conductor.heartbeat_interval)
     def heartbeat_keepalive_all_instances(self, context):
         """Reach out to all instances to get a heartbeat.
@@ -141,21 +161,43 @@ class ConductorManager(service.PeriodicService):
         instances = [brick.instance_id for brick in bricks]
         self.mortar_rpcapi.do_check_instances(context, instances)
 
-
-    def do_check_last_task(self, context, instance_id, task_status):
+    def do_report_last_task(self, context, instance_id, task_status):
         """A report back from mortar that a task has been completed.
-        """
-        pass
 
-    def do_task_report(self, context, results):
-        """Do task results!!!!!!!!!!!!!!!!!!
-
-        Mortar executed some things, now we're hearing back about how those
-        things went.
-        :param results: [MortarTaskResult, ]
+        :param instance_id: Nova instance id
+        :param task_status: constant in `bricks.objects.mortar_task`
         """
-        LOG.debug("received task report from Mortar.")
-        self._spawn_worker(utils.do_task_report, context, results)
+        from bricks.objects.mortar_task import (COMPLETE, RUNNING, ERROR,
+                                                INSUFF, STATES)
+        assert task_status in STATES
+
+        brick = self.dbapi.get_brick(brick_id=None, instance_id=instance_id)
+
+        if brick.status == states.INIT:
+            # brick is just initializing, and we're waiting to hear back from
+            # mortar on whether the task ahs been accepted.
+            if task_status == RUNNING:
+                brick.state = states.DEPLOYING
+
+            elif task_status == ERROR:
+                brick.state = states.DEPLOYFAIL
+
+            brick.save(context)
+
+        elif brick.status == states.DEPLOYING:
+            # brick is already deploying, and this is in response to a status
+            # check rpc call.
+            if task_status == COMPLETE:
+                brick.state = states.DEPLOYDONE
+
+            elif task_status == ERROR:
+                brick.state = states.DEPLOYFAIL
+
+            brick.save(context)
+
+        else:
+            LOG.warning("Brick %s received task state %s on invalid state "
+                        "%s" % (brick.uuid, task_status, brick.status))
 
     @lockutils.synchronized(WORKER_SPAWN_lOCK, 'bricks-')
     def _spawn_worker(self, func, *args, **kwargs):
