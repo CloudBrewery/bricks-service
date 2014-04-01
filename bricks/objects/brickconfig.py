@@ -23,6 +23,7 @@ class BrickConfig(base.BricksObject):
         'ports': utils.list_or_none,
         'environ': utils.dict_or_none,
         'email_template': utils.str_or_none,
+        'help_link': utils.str_or_none,
     }
 
     @staticmethod

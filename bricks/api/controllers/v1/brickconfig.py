@@ -64,6 +64,7 @@ class BrickConfig(base.APIBase):
     #  weight (string, number 1-100?)
     environ = {wtypes.text: wtypes.text}
     email_template = wtypes.text
+    help_link = wtypes.text
 
     links = [link.Link]
 

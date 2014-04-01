@@ -107,6 +107,7 @@ class BrickConfig(Base):
     # environ is going to exist as a DICT for now and use weights for ordering.
     environ = Column(JSONEncodedDict, nullable=True)
     email_template = Column(Text, nullable=True)
+    help_link = Column(String(255), nullable=True)
 
 
 class ConfigFile(Base):
