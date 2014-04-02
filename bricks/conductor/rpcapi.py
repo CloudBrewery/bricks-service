@@ -71,10 +71,10 @@ class ConductorAPI(bricks.openstack.common.rpc.proxy.RpcProxy):
                   self.make_msg('notify_completion', brick_id=brick_id),
                   topic=topic or self.topic)
 
-    def do_check_last_task(self, context, instance_id, task_status,
+    def do_report_last_task(self, context, instance_id, task_status,
                            topic=None):
         self.cast(context,
-                  self.make_msg('do_check_last_task',
+                  self.make_msg('do_report_last_task',
                                 instance_id=instance_id,
                                 task_status=task_status),
                   topic=topic or self.topic)
