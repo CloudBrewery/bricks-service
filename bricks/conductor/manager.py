@@ -188,6 +188,7 @@ class ConductorManager(service.PeriodicService):
             if task_status == COMPLETE:
                 utils.brick_deploydone_action(context, brick.id)
 
+                # notify user of completion
                 brickconfig = self.dbapi.get_brickconfig(
                     brick.brickconfig_uuid)
                 utils.notify_completion(context, brick, brickconfig)
