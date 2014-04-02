@@ -13,8 +13,6 @@ from novaclient import exceptions as nova_exceptions
 
 LOG = log.getLogger(__name__)
 
-BRICKS_URL = 'https://dash-dev.clouda.ca/dockerstack/update'
-
 
 ##
 # Actions
@@ -102,7 +100,6 @@ def _deploy_nova_server(req_context, brick, brickconfig):
 
     # Create our required security group if needed
     sec_groups = ensure_security_groups(req_context, brickconfig)
-    meta = prepare_instance_meta(req_context, brick, brickconfig)
 
     nic = [{"net-id": brick.configuration['network'],
             "v4-fixed-ip": ""}]
@@ -113,7 +110,6 @@ def _deploy_nova_server(req_context, brick, brickconfig):
         brick.configuration['name'],
         image,
         brick.configuration['flavour'],
-        meta=meta,
         userdata=get_userdata(),
         config_drive=True,
         disk_config='AUTO',
@@ -191,26 +187,6 @@ def ensure_security_groups(req_context, brickconfig):
                 '/os-security-group-rules', data=port_data)
 
     return g_id
-
-
-def prepare_instance_meta(req_context, brick, brickconfig):
-    """Prepares a set of metadata to get injected into an instance while the
-    deploy is happening so Dockerstack can initialize fully.
-
-    """
-
-    meta = {}
-
-    tmp = {
-        'BRICKS_API': BRICKS_URL,
-        'BRICKS_UUID': brick.uuid,
-        'TOKEN_ID': req_context.auth_token,
-    }
-
-    for k, v in tmp.items():
-        meta['_tmp_' + k] = v
-
-    return meta
 
 
 def _drive_floating_ip(req_context, brick, floating_ip):
