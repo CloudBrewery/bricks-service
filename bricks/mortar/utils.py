@@ -1,12 +1,12 @@
 import libvirt
+from lxml import etree
 import os
 import socket
 
 from bricks.objects import mortar_task
 
 SOCKET_TIMEOUT = 10
-SOCKET_PATH_PREFIX = "/tmp/bricks/"
-LOG_PATH_PREFIX = "/var/log/bricks/instances/"
+INSTANCES_PATH = "/var/lib/nova/instances/"
 
 
 def get_running_instances():
@@ -20,6 +20,68 @@ def get_running_instances():
         instances.append(instance.UUIDString())
 
     return instances
+
+
+def config_xml(instance_id):
+    xml_path = os.path.join(INSTANCES_PATH, instance_id, 'libvirt.xml')
+    xml = etree.parse(xml_path)
+    socket_chan = xml.xpath("/devices/channel/target[@name='org.clouda.0']")
+    log_chan = xml.xpath("/devices/channel/target[@name='org.clouda.1']")
+    devices = xml.find("/devices")
+    modified = False
+
+    if len(socket_chan) < 1:
+        chan = etree.SubElement(devices, "channel")
+        chan.attrib["type"] = 'unix'
+        source = etree.SubElement(chan, "source")
+        source.attrib["mode"] = 'bind'
+        source.attrib["path"] = os.path.join(INSTANCES_PATH, instance_id,
+                                             'bricks.socket')
+        target = etree.SubElement(chan, "target")
+        target.attrib["type"] = 'virtio'
+        target.attrib["name"] = 'org.clouda.0'
+        address = etree.SubElement(chan, "address")
+        address.attrib["type"] = 'virtio-serial'
+        address.attrib["controller"] = '0'
+        address.attrib["bus"] = '0'
+        address.attrib["port"] = '1'
+        modified = True
+
+    if len(log_chan) < 1:
+        chan = etree.SubElement(devices, "channel")
+        chan.attrib["type"] = 'file'
+        source = etree.SubElement(chan, "source")
+        source.attrib["path"] = os.path.join(INSTANCES_PATH, instance_id,
+                                             'bricks.log')
+        target = etree.SubElement(chan, "target")
+        target.attrib["type"] = 'virtio'
+        target.attrib["name"] = 'org.clouda.1'
+        address = etree.SubElement(chan, "address")
+        address.attrib["type"] = 'virtio-serial'
+        address.attrib["controller"] = '0'
+        address.attrib["bus"] = '0'
+        address.attrib["port"] = '2'
+        modified = True
+
+    if modified:
+        tree = etree.ElementTree(xml)
+        tree.write(xml_path, pretty_print=True, xml_declaration=True)
+
+        conn = libvirt.open("qemu:///system")
+
+        libvirt_instances = conn.listAllDomains(
+            libvirt.VIR_CONNECT_LIST_DOMAINS_ACTIVE)
+
+        for instance in libvirt_instances:
+            if instance.UUIDString() == instance_id:
+                instance.destroy()
+                instance.undefine()
+                break
+
+        instance = libvirt.defineXML(xml_path)
+        instance.start()
+
+    return modified
 
 
 def do_health_check(req_context, instance_list):
@@ -39,12 +101,12 @@ def do_execute(req_context, task):
     :param execution_list ([objects.MortarTask, ]): A list of tasks to do
     work on.
     """
-    ##TODO: CHANGE THIS BACK
-    #socket_file = os.path.join(SOCKET_PATH_PREFIX, task.instance_id, '.socket')
-    socket_file = "/tmp/instance123.socket"
+    socket_file = os.path.join(INSTANCES_PATH, task.instance_id,
+                               'bricks.socket')
 
     if not os.path.exists(socket_file):
-        return mortar_task.ERROR
+        config_xml(task.instance_id)
+        return
 
     try:
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -68,7 +130,7 @@ def do_check_last_task(req_context, instance_id):
     :param req_context:
     :param instance_id str: An instance ID
     """
-    log_file = os.path.join(LOG_PATH_PREFIX, instance_id, '.log')
+    log_file = os.path.join(INSTANCES_PATH, instance_id, 'bricks.log')
 
     try:
         log = open(log_file, "r")
