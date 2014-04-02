@@ -74,7 +74,7 @@ def config_xml(instance_id):
         try:
             uid = pwd.getpwnam("libvirt-qemu").pw_uid
             gid = grp.getgrnam("kvm").gr_uid
-            os.chown(os.path.join(INSTANCES_PATH, 'bricks'), uid, gid)
+            os.chown(os.path.join(INSTANCES_PATH, instance_id, 'bricks'), uid, gid)
         except Exception:
             pass
 
