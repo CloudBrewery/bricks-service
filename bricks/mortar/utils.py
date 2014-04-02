@@ -1,6 +1,8 @@
+import grp
 import libvirt
 from lxml import etree
 import os
+import pwd
 import socket
 
 from bricks.objects import mortar_task
@@ -30,13 +32,25 @@ def config_xml(instance_id):
     devices = xml.find("/devices")
     modified = False
 
+    try:
+        os.mkdir(os.path.join(INSTANCES_PATH, 'bricks'))
+    except Exception:
+        pass
+
+    try:
+        uid = pwd.getpwnam("libvirt-qemu").pw_uid
+        gid = grp.getgrnam("kvm").gr_uid
+        os.chown(os.path.join(INSTANCES_PATH, 'bricks'), uid, gid)
+    except Exception:
+        pass
+
     if len(socket_chan) < 1:
         chan = etree.SubElement(devices, "channel")
         chan.attrib["type"] = 'unix'
         source = etree.SubElement(chan, "source")
         source.attrib["mode"] = 'bind'
         source.attrib["path"] = os.path.join(INSTANCES_PATH, instance_id,
-                                             'bricks.socket')
+                                             'bricks/bricks.socket')
         target = etree.SubElement(chan, "target")
         target.attrib["type"] = 'virtio'
         target.attrib["name"] = 'org.clouda.0'
@@ -52,7 +66,7 @@ def config_xml(instance_id):
         chan.attrib["type"] = 'file'
         source = etree.SubElement(chan, "source")
         source.attrib["path"] = os.path.join(INSTANCES_PATH, instance_id,
-                                             'bricks.log')
+                                             'bricks/bricks.log')
         target = etree.SubElement(chan, "target")
         target.attrib["type"] = 'virtio'
         target.attrib["name"] = 'org.clouda.1'
@@ -64,8 +78,7 @@ def config_xml(instance_id):
         modified = True
 
     if modified:
-        tree = etree.ElementTree(xml)
-        tree.write(xml_path, pretty_print=True, xml_declaration=True)
+        xml.write(xml_path, pretty_print=True, xml_declaration=True)
 
         conn = libvirt.open("qemu:///system")
 
@@ -78,8 +91,8 @@ def config_xml(instance_id):
                 instance.undefine()
                 break
 
-        instance = libvirt.defineXML(xml_path)
-        instance.start()
+        instance = conn.defineXML(xml_path)
+        instance.create()
 
     return modified
 
@@ -102,7 +115,7 @@ def do_execute(req_context, task):
     work on.
     """
     socket_file = os.path.join(INSTANCES_PATH, task.instance_id,
-                               'bricks.socket')
+                               'bricks/bricks.socket')
 
     if not os.path.exists(socket_file):
         config_xml(task.instance_id)
@@ -130,7 +143,7 @@ def do_check_last_task(req_context, instance_id):
     :param req_context:
     :param instance_id str: An instance ID
     """
-    log_file = os.path.join(INSTANCES_PATH, instance_id, 'bricks.log')
+    log_file = os.path.join(INSTANCES_PATH, instance_id, 'bricks/bricks.log')
 
     try:
         log = open(log_file, "r")
