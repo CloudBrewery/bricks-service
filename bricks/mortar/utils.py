@@ -32,18 +32,6 @@ def config_xml(instance_id):
     devices = xml.find("/devices")
     modified = False
 
-    try:
-        os.mkdir(os.path.join(INSTANCES_PATH, 'bricks'))
-    except Exception:
-        pass
-
-    try:
-        uid = pwd.getpwnam("libvirt-qemu").pw_uid
-        gid = grp.getgrnam("kvm").gr_uid
-        os.chown(os.path.join(INSTANCES_PATH, 'bricks'), uid, gid)
-    except Exception:
-        pass
-
     if len(socket_chan) < 1:
         chan = etree.SubElement(devices, "channel")
         chan.attrib["type"] = 'unix'
@@ -78,6 +66,18 @@ def config_xml(instance_id):
         modified = True
 
     if modified:
+        try:
+            os.mkdir(os.path.join(INSTANCES_PATH, 'bricks'))
+        except Exception:
+            pass
+
+        try:
+            uid = pwd.getpwnam("libvirt-qemu").pw_uid
+            gid = grp.getgrnam("kvm").gr_uid
+            os.chown(os.path.join(INSTANCES_PATH, 'bricks'), uid, gid)
+        except Exception:
+            pass
+
         xml.write(xml_path, pretty_print=True, xml_declaration=True)
 
         conn = libvirt.open("qemu:///system")
@@ -118,7 +118,8 @@ def do_execute(req_context, task):
                                'bricks/bricks.socket')
 
     if not os.path.exists(socket_file):
-        config_xml(task.instance_id)
+        if task.instance_id in get_running_instances():
+            config_xml(task.instance_id)
         return
 
     try:
