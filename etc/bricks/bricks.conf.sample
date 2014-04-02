@@ -385,6 +385,17 @@
 # Seconds between deploying job checks. (integer value)
 #deploying_job_interval=5
 
+[conductor_utils]
+
+#
+# Options defined in bricks.conductor.utils
+#
+
+# Instance image UUID (string)
+# Ubuntu 12.04 ONLY supported.
+#
+image_uuid=8b20af24-1946-4fe5-a7c3-ad908c684712
+
 [mortar]
 
 #

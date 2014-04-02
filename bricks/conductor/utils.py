@@ -1,8 +1,9 @@
 import os
 
+from oslo.config import cfg
+
 import emails
 from emails.template import JinjaTemplate as T
-
 
 from bricks.common import opencrack
 from bricks.common import states
@@ -12,6 +13,16 @@ from bricks.openstack.common import log
 from novaclient import exceptions as nova_exceptions
 
 LOG = log.getLogger(__name__)
+
+conductor_utils_opts = [
+    cfg.StrOpt('image_uuid',
+               default='8b20af24-1946-4fe5-a7c3-ad908c684712',
+               help='Instance image UUID'),
+]
+
+CONF = cfg.CONF
+CONF.register_opts(conductor_utils_opts, 'conductor_utils')
+
 
 
 ##
@@ -96,7 +107,7 @@ def _deploy_nova_server(req_context, brick, brickconfig):
     """
 
     # Ubuntu ONLY, image is hard coded.
-    image = '8b20af24-1946-4fe5-a7c3-ad908c684712'
+    image = CONF.conductor_utils.image_uuid
 
     # Create our required security group if needed
     sec_groups = ensure_security_groups(req_context, brickconfig)
