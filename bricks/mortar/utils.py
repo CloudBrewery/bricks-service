@@ -91,7 +91,7 @@ def config_xml(instance_id):
                 instance.undefine()
                 break
 
-        instance = conn.defineXML(xml_path)
+        instance = conn.defineXML(etree.tostring(xml, pretty_print=True))
         instance.create()
 
     return modified
