@@ -67,7 +67,7 @@ def config_xml(instance_id):
 
     if modified:
         try:
-            os.mkdir(os.path.join(INSTANCES_PATH, 'bricks'))
+            os.mkdir(os.path.join(INSTANCES_PATH, instance_id, 'bricks'))
         except Exception:
             pass
 
