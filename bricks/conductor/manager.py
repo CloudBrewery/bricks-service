@@ -117,11 +117,17 @@ class ConductorManager(service.PeriodicService):
             filters={'status': states.INIT})
 
         for brick in bricks_to_prep:
+            if not brick.instance_id:
+                LOG.warning("Brick stuck in init without instance ID: "
+                            "%s" % brick.uuid)
+                continue
+
             # prepare payload for brick
             bc = self.dbapi.get_brickconfig(brick.brickconfig_uuid)
 
             config_files = self.dbapi.get_configfile_list(
                 filters={'brickconfig_uuid': brick.brickconfig_uuid})
+
 
             task = MortarTask()
             task.instance_id = brick.instance_id
