@@ -177,23 +177,23 @@ class ConductorManager(service.PeriodicService):
             # brick is just initializing, and we're waiting to hear back from
             # mortar on whether the task ahs been accepted.
             if task_status == RUNNING:
-                brick.status = states.DEPLOYING
+                utils.brick_deploying_action(context, brick.id)
 
             elif task_status == ERROR:
-                brick.status = states.DEPLOYFAIL
-
-            brick.save(context)
+                utils.brick_deployfail_action(context, brick.id)
 
         elif brick.status == states.DEPLOYING:
             # brick is already deploying, and this is in response to a status
             # check rpc call.
             if task_status == COMPLETE:
-                brick.status = states.DEPLOYDONE
+                utils.brick_deploydone_action(context, brick.id)
+
+                brickconfig = self.dbapi.get_brickconfig(
+                    brick.brickconfig_uuid)
+                utils.notify_completion(context, brick, brickconfig)
 
             elif task_status == ERROR:
-                brick.status = states.DEPLOYFAIL
-
-            brick.save(context)
+                utils.brick_deployfail_action(context, brick.id)
 
         else:
             LOG.warning("Brick %s received task state %s on invalid state "
