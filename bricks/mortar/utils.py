@@ -4,6 +4,7 @@ from lxml import etree
 import os
 import pwd
 import socket
+from time import sleep
 
 from bricks.objects import mortar_task
 
@@ -73,8 +74,9 @@ def config_xml(instance_id):
 
         try:
             uid = pwd.getpwnam("libvirt-qemu").pw_uid
-            gid = grp.getgrnam("kvm").gr_uid
-            os.chown(os.path.join(INSTANCES_PATH, instance_id, 'bricks'), uid, gid)
+            gid = grp.getgrnam("kvm").gr_gid
+            os.chown(os.path.join(INSTANCES_PATH, instance_id, 'bricks'),
+                     uid, gid)
         except Exception:
             pass
 
@@ -88,9 +90,9 @@ def config_xml(instance_id):
         for instance in libvirt_instances:
             if instance.UUIDString() == instance_id:
                 instance.destroy()
-                instance.undefine()
                 break
 
+        sleep(5)
         instance = conn.defineXML(etree.tostring(xml, pretty_print=True))
         instance.create()
 
