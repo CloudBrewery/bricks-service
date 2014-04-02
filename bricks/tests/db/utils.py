@@ -42,6 +42,7 @@ def get_test_brickconfig(**kw):
         'ports': kw.get('ports', []),
         'environ': kw.get('environ', {}),
         'email_template': kw.get('email_template', 'you have a {{ brick.configuration.test }} now.. grats.'),
+        'help_link': kw.get('help_link', 'https://google.com'),
 
         'created_at': kw.get('created_at'),
         'updated_at': kw.get('updated_at'),

@@ -160,7 +160,10 @@ class ManagerTestCase(base.DbTestCase):
         brick.refresh(self.context)
         self.assertEqual(states.DEPLOYING, brick.status)
 
-    def test_report_task_done(self):
+    @mock.patch('bricks.conductor.utils.notify_completion')
+    def test_report_task_done(self, notify_fn):
+        brick = self.dbapi.create_brickconfig(
+            utils.get_test_brickconfig())
         brick = self.dbapi.create_brick(
             utils.get_test_brick(status=states.DEPLOYING))
 
