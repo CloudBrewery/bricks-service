@@ -10,13 +10,6 @@ mkdir $BUILD_DIR
 cd $BUILD_DIR
 
 echo "--------------------------"
-echo "Installing deps"
-echo "--------------------------"
-
-apt-get update
-apt-get install -y git python-dev gcc supervisor python-pip
-
-echo "--------------------------"
 echo "Installing occupant"
 echo "--------------------------"
 
