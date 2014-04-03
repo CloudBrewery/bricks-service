@@ -92,7 +92,7 @@ def config_xml(instance_id):
 
         for instance in libvirt_instances:
             if instance.UUIDString() == instance_id:
-                instance.destroy()
+                instance.shutdown()
                 break
 
         sleep(5)
