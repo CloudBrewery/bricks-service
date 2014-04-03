@@ -129,7 +129,7 @@ def do_execute(req_context, task):
         sock.settimeout(SOCKET_TIMEOUT)
         sock.connect(socket_file)
         sock.sendall("StartStream\n")
-        for filename, contents in task.configuration:
+        for filename, contents in task.configuration.iteritems():
             socket_send(sock, contents, filename=filename)
         sock.sendall("StopStream\n")
     except socket.error:
