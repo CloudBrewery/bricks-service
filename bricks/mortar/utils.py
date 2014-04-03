@@ -107,7 +107,9 @@ def do_health_check(req_context, instance_list):
 
 
 def socket_send(sock, message, filename=None):
-    sock.sendall(''.join('BOF %s\n' % filename).join(message).join('EOF\n'))
+    sock.sendall('BOF %s\n' % filename)
+    sock.sendall(message)
+    sock.sendall('EOF\n')
 
 
 def do_execute(req_context, task):
