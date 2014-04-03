@@ -108,7 +108,7 @@ def do_health_check(req_context, instance_list):
 
 def socket_send(sock, message, filename=None):
     sock.sendall('BOF %s\n' % filename)
-    sock.sendall(message)
+    sock.sendall(message + '\n')
     sock.sendall('EOF\n')
 
 
@@ -126,7 +126,8 @@ def do_execute(req_context, task):
 
     if not os.path.exists(socket_file):
         if task.instance_id in get_running_instances():
-            LOG.debug("%s does not have proper XML. Configuring..." % task.instance_id)
+            LOG.debug("%s does not have proper XML. Configuring..." %
+                      task.instance_id)
             config_xml(task.instance_id)
         return
 
