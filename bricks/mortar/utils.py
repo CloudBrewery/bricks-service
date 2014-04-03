@@ -155,7 +155,7 @@ def do_check_last_task(req_context, instance_id):
 
     lines = log.readlines()
     line_count = len(lines)
-    line_num = line_count
+    line_num = line_count - 1
     line = lines[line_num]
 
     while line not in mortar_task.STATE_LIST and line_num >= 0:
