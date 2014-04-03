@@ -159,7 +159,7 @@ def do_check_last_task(req_context, instance_id):
 
     while line not in mortar_task.STATE_LIST:
         line_num -= 1
-        line = lines[line_num]
+        line = lines[line_num:]
 
     if line not in mortar_task.STATE_LIST:
         return mortar_task.INSUFF
