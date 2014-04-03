@@ -77,8 +77,10 @@ class MortarManager(service.PeriodicService):
                 context, execution_task.instance_id, gt.wait())
 
         if execution_task.instance_id in utils.get_running_instances():
-            LOG.debug('received some things to do!', execution_task)
-            worker = self._spawn_worker(utils.do_execute, context, execution_task)
+            LOG.debug('received some things to do for %s',
+                      execution_task.instance_id)
+            worker = self._spawn_worker(utils.do_execute, context,
+                                        execution_task)
             worker.link(worker_callback)
 
     def do_check_instances(self, context, instance_list, topic=None):
@@ -102,7 +104,7 @@ class MortarManager(service.PeriodicService):
 
         def worker_callback(gt, *args, **kwargs):
             self.conductor_rpcapi.do_report_last_task(context,
-                                                     instance_id, gt.wait())
+                                                      instance_id, gt.wait())
 
         worker = self._spawn_worker(utils.do_check_last_task, context,
                                     instance_id)
