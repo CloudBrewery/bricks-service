@@ -154,12 +154,13 @@ def do_check_last_task(req_context, instance_id):
         return mortar_task.INSUFF
 
     lines = log.readlines()
-    line_num = -1
-    line = lines[line_num:]
+    line_count = len(lines)
+    line_num = line_count
+    line = lines[line_num]
 
-    while line not in mortar_task.STATE_LIST:
+    while line not in mortar_task.STATE_LIST and line_num >= 0:
         line_num -= 1
-        line = lines[line_num:]
+        line = lines[line_num]
 
     if line not in mortar_task.STATE_LIST:
         return mortar_task.INSUFF
