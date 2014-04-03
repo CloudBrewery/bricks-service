@@ -6,10 +6,13 @@ import pwd
 import socket
 from time import sleep
 
+from bricks.openstack.common import log
 from bricks.objects import mortar_task
 
 SOCKET_TIMEOUT = 10
 INSTANCES_PATH = "/var/lib/nova/instances/"
+
+LOG = log.getLogger(__name__)
 
 
 def get_running_instances():
@@ -121,6 +124,7 @@ def do_execute(req_context, task):
 
     if not os.path.exists(socket_file):
         if task.instance_id in get_running_instances():
+            LOG.debug("%s does not have proper XML. Configuring..." % task.instance_id)
             config_xml(task.instance_id)
         return
 
@@ -128,9 +132,12 @@ def do_execute(req_context, task):
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         sock.settimeout(SOCKET_TIMEOUT)
         sock.connect(socket_file)
+        LOG.debug("Starting stream on task for %s" % task.instance_id)
         sock.sendall("StartStream\n")
         for filename, contents in task.configuration.iteritems():
+            LOG.debug("Stream file %s with contents %s" % (filename, contents))
             socket_send(sock, contents, filename=filename)
+        LOG.debug("Done streaming task for %s" % task.instance_id)
         sock.sendall("StopStream\n")
     except socket.error:
         return mortar_task.ERROR
