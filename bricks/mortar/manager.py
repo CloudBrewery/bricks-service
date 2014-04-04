@@ -89,26 +89,15 @@ class MortarManager(service.PeriodicService):
         """
         LOG.debug('Doing health Check, as commanded by my conductor.')
 
-        def worker_cb(gt, *args, **kwargs):
-            self.conductor_rpcapi.do_task_report(context, gt.wait())
-
-        worker = self._spawn_worker(utils.do_health_check, context,
-                                    instance_list)
-        worker.link(worker_cb)
-
     def do_check_last_task(self, context, instance_id, topic=None):
         """Check the state of the last run task on an instance and return
         to the conductor
         """
         LOG.debug('Checking on instance %s.' % instance_id)
 
-        def worker_callback(gt, *args, **kwargs):
-            self.conductor_rpcapi.do_report_last_task(context,
-                                                      instance_id, gt.wait())
-
-        worker = self._spawn_worker(utils.do_check_last_task, context,
-                                    instance_id)
-        worker.link(worker_callback)
+        task_result = utils.do_check_last_task(context, instance_id)
+        self.conductor_rpcapi.do_report_last_task(
+            context, instance_id, task_result)
 
     def periodic_tasks(self, context, raise_on_error=False):
         """Periodic tasks are run at pre-specified interval."""
