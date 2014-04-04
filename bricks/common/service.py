@@ -2,7 +2,7 @@ import socket
 
 from oslo.config import cfg
 
-from bricks.openstack.common import context
+from bricks.common import context
 from bricks.openstack.common import log
 from bricks.openstack.common import periodic_task
 from bricks.openstack.common import rpc

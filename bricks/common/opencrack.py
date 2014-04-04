@@ -25,13 +25,23 @@ def build_nova_client(req_context):
 
 
 def build_keystone_client(token_id):
-    return keystone_client.Client(token=token_id,
-                                  endpoint=CONF.keystone_authtoken.auth_uri)
+    if token_id == 'admin':
+        return keystone_client.Client(
+            endpoint=CONF.keystone_authtoken.auth_uri)
+    else:
+        return keystone_client.Client(
+            token=token_id, endpoint=CONF.keystone_authtoken.auth_uri)
 
 
 def get_keystone_token(keystone_client, token_id, tenant_id):
-    return keystone_client.tokens.authenticate(token=token_id,
-                                               tenant_id=tenant_id)
+    if token_id == 'admin' and tenant_id is None:
+        return keystone_client.tokens.authenticate(
+            username=CONF.keystone_authtoken.admin_user,
+            password=CONF.keystone_authtoken.admin_password,
+            tenant_name=CONF.keystone_authtoken.admin_tenant_name)
+    else:
+        return keystone_client.tokens.authenticate(token=token_id,
+                                                   tenant_id=tenant_id)
 
 
 def api_request(catalog_type, token_id, tenant_id, url, data=None,
