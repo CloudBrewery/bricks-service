@@ -148,6 +148,16 @@ class Connection(api.Connection):
 
         return query
 
+    def _add_configfile_filters(self, query, filters):
+        if filters is None:
+            filters = {}
+
+        if 'brickconfig_uuid' in filters:
+            query = query.filter_by(
+                brickconfig_uuid=filters['brickconfig_uuid'])
+
+        return query
+
     @objects.objectify(objects.Brick)
     def get_brick_list(self, filters=None, limit=None, marker=None,
                        sort_key=None, sort_dir=None):
@@ -170,9 +180,21 @@ class Connection(api.Connection):
         return brick
 
     @objects.objectify(objects.Brick)
-    def get_brick(self, brick_id, tenant_id=None):
+    def get_brick(self, brick_id, tenant_id=None, instance_id=None):
+        """Get an individual brick
+
+        :param brick_id: an id like object (id or uuid)
+        :param tenant_id: a tenant filter (to 404 unauthorized access)
+        :param instance_id: instance filter, if provided overrides brick_id
+                            for primary lookup.
+        """
         query = model_query(models.Brick)
-        query = add_identity_filter(query, brick_id)
+
+        if instance_id is not None:
+            query = query.filter_by(instance_id=instance_id)
+        else:
+            query = add_identity_filter(query, brick_id)
+
         if tenant_id:
             query = query.filter_by(tenant_id=tenant_id)
 
@@ -206,11 +228,14 @@ class Connection(api.Connection):
                 query = query.filter_by(tenant_id=tenant_id)
 
             try:
-                ref = query.one()
+                query.one()
             except NoResultFound:
                 raise exception.BrickNotFound(brick=brick_id)
 
             query.delete()
+
+    #################
+    # BrickConfig API
 
     @objects.objectify(objects.BrickConfig)
     def get_brickconfig_list(self, filters=None, limit=None, marker=None,
@@ -270,4 +295,59 @@ class Connection(api.Connection):
 
             query.delete()
 
+    #####################
+    # ConfigFile API
 
+    @objects.objectify(objects.ConfigFile)
+    def get_configfile_list(self, filters=None, limit=None,
+                            marker=None, sort_key=None, sort_dir=None):
+        query = model_query(models.ConfigFile)
+        query = self._add_configfile_filters(query, filters)
+        return _paginate_query(models.ConfigFile, limit, marker, sort_key,
+                               sort_dir, query)
+
+    @objects.objectify(objects.ConfigFile)
+    def create_configfile(self, values):
+        if not values.get('uuid'):
+            values['uuid'] = utils.generate_uuid()
+
+        bcf = models.ConfigFile()
+        bcf.update(values)
+        bcf.save()
+        return bcf
+
+    @objects.objectify(objects.ConfigFile)
+    def get_configfile(self, bcf_id):
+        query = model_query(models.ConfigFile)
+        query = add_identity_filter(query, bcf_id)
+
+        try:
+            return query.one()
+        except NoResultFound:
+            raise exception.ConfigFileNotFound(configfile=bcf_id)
+
+    @objects.objectify(objects.ConfigFile)
+    def update_configfile(self, bcf_id, values):
+        session = get_session()
+        with session.begin():
+            query = model_query(models.ConfigFile, session=session)
+            query = add_identity_filter(query, bcf_id)
+
+            count = query.update(values)
+            if count != 1:
+                raise exception.ConfigFileNotFound(configfile=bcf_id)
+            ref = query.one()
+        return ref
+
+    def destroy_configfile(self, bcf_id):
+        session = get_session()
+        with session.begin():
+            query = model_query(models.ConfigFile, session=session)
+            query = add_identity_filter(query, bcf_id)
+
+            try:
+                query.one()
+            except NoResultFound:
+                raise exception.ConfigFileNotFound(configfile=bcf_id)
+
+            query.delete()

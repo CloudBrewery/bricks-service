@@ -2,7 +2,7 @@ import socket
 
 from oslo.config import cfg
 
-from bricks.openstack.common import context
+from bricks.common import context
 from bricks.openstack.common import log
 from bricks.openstack.common import periodic_task
 from bricks.openstack.common import rpc
@@ -11,7 +11,7 @@ from bricks.openstack.common.rpc import service as rpc_service
 
 service_opts = [
     cfg.IntOpt('periodic_interval',
-               default=60,
+               default=5,
                help='Seconds between running periodic tasks.'),
     cfg.StrOpt('host',
                default=socket.getfqdn(),

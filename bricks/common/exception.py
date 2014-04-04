@@ -181,10 +181,20 @@ class ConfigNotFound(BricksException):
 
 
 class BrickNotFound(NotFound):
-    message = _("Coult not find brick %(brick)s")
+    message = _("Could not find brick %(brick)s")
 
 
 class BrickConfigNotFound(NotFound):
-    message = _("Coult not find brickconfig %(brickconfig)s")
+    message = _("Could not find brickconfig %(brickconfig)s")
 
 
+class ConfigFileNotFound(NotFound):
+    message = _("Could not find config file %(configfile)s")
+
+
+class MortarTaskTimeout(NotFound):
+    message = _("Timed out while waiting for mortar task.")
+
+
+class MortarTaskNoData(BricksException):
+    message = _("No data was received.")

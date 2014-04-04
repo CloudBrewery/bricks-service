@@ -369,7 +369,7 @@
 #api_url=<None>
 
 # Seconds between conductor heart beats. (integer value)
-#heartbeat_interval=10
+#heartbeat_interval=60
 
 # Maximum time (in seconds) since the last check-in of a
 # conductor. (integer value)
@@ -378,6 +378,46 @@
 # Interval between syncing the node power state to the
 # database, in seconds. (integer value)
 #sync_power_state_interval=60
+
+# Seconds between job initialization tasks. (integer value)
+#init_job_interval=15
+
+# Seconds between deploying job checks. (integer value)
+#deploying_job_interval=5
+
+[conductor_utils]
+
+#
+# Options defined in bricks.conductor.utils
+#
+
+# Instance image UUID (string)
+# Ubuntu 12.04 ONLY supported.
+#
+image_uuid=8b20af24-1946-4fe5-a7c3-ad908c684712
+
+[mortar]
+
+#
+# Options defined in bricks.mortar.manager
+#
+
+# URL of Bricks API service. If not set bricks can get the
+# current value from the keystone service catalog. (string
+# value)
+#api_url=<None>
+
+# Seconds between mortar service heart beats. (integer value)
+#heartbeat_interval=10
+
+# Maximum time (in seconds) since the last check-in of a
+# mortar. (integer value)
+#heartbeat_timeout=60
+
+# Interval between syncing the node power state to the
+# database, in seconds. (integer value)
+#sync_power_state_interval=60
+
 
 
 [database]

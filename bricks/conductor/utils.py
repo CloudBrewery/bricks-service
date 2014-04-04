@@ -1,9 +1,10 @@
-import json
+import os
+
+from oslo.config import cfg
 
 import emails
-from emails.template import JinjaTemplate
+from emails.template import JinjaTemplate as T
 
-from bricks.common import exception
 from bricks.common import opencrack
 from bricks.common import states
 from bricks.db import api as dbapi
@@ -13,7 +14,14 @@ from novaclient import exceptions as nova_exceptions
 
 LOG = log.getLogger(__name__)
 
-BRICKS_URL = 'https://dash-dev.clouda.ca/dockerstack/update'
+conductor_utils_opts = [
+    cfg.StrOpt('image_uuid',
+               default='8b20af24-1946-4fe5-a7c3-ad908c684712',
+               help='Instance image UUID'),
+]
+
+CONF = cfg.CONF
+CONF.register_opts(conductor_utils_opts, 'conductor_utils')
 
 
 ##
@@ -98,21 +106,20 @@ def _deploy_nova_server(req_context, brick, brickconfig):
     """
 
     # Ubuntu ONLY, image is hard coded.
-    image = '8b20af24-1946-4fe5-a7c3-ad908c684712'
+    image = CONF.conductor_utils.image_uuid
 
     # Create our required security group if needed
     sec_groups = ensure_security_groups(req_context, brickconfig)
-    meta = prepare_instance_meta(req_context, brick, brickconfig)
 
     nic = [{"net-id": brick.configuration['network'],
             "v4-fixed-ip": ""}]
 
     novaclient = opencrack.build_nova_client(req_context)
+    novaclient.authenticate()
     server = novaclient.servers.create(
-        brickconfig.name,
+        brick.configuration['name'],
         image,
         brick.configuration['flavour'],
-        meta=meta,
         userdata=get_userdata(),
         config_drive=True,
         disk_config='AUTO',
@@ -132,79 +139,64 @@ def _destroy_nova_server(req_context, instance_id):
 
 
 def get_userdata():
-    # load the bootfile for passing to the server on create.
-    import dockerstack_agent.bootfile
-    userdata_path = dockerstack_agent.bootfile.path()
+    userdata_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                 "../common/nova_userdata.sh")
     return open(userdata_path, 'r')
 
 
 def ensure_security_groups(req_context, brickconfig):
     """Ensure a security group is created or already exists for the user
     under the name, and make sure it has the correct ports open.
+
+    :param req_context: populated request context
+    :param brickconfig: brickconfig with port configuration
     """
 
     g_id = []
     exists = False
 
-    novaclient = opencrack.build_nova_client(req_context)
-    sec_groups = novaclient.security_groups.list()
+    sec_groups = opencrack.api_request(
+        'compute', req_context.auth_token, req_context.tenant_id,
+        '/os-security-groups', method='GET'
+    ).json()
 
-    for group in sec_groups:
-        if group.name == u"%s" % brickconfig.name:
+    for group in sec_groups['security_groups']:
+        if group['name'] == u"%s" % brickconfig.name:
             exists = True
-            g_id.append(group.id)
+            g_id.append(group['id'])
             break
 
     if not exists:
         # if it doesn't exist, create it and make sure all the ports are bound.
-        sec_group = novaclient.security_groups.create(
-            brickconfig.name,
-            "Auto-generated security group for %s" % brickconfig.name)
+        sec_group_data = {
+            'security_group': {
+                'name': brickconfig.name,
+                'description': 'Auto-generated security group for %s' % brickconfig.name
+            }
+        }
+        sec_group = opencrack.api_request(
+            'compute', req_context.auth_token, req_context.tenant_id,
+            '/os-security-groups', data=sec_group_data
+        ).json().get('security_group')
 
-        g_id.append(sec_group.id)
+        g_id.append(sec_group['id'])
 
         for port in brickconfig.ports:
-            novaclient.security_group_rules.create(
-                sec_group.id,
-                'tcp',
-                port,
-                port,
-                '0.0.0.0/0',
-                None)
+            port_data = {
+                'security_group_rule': {
+                    'ip_protocol': 'tcp',
+                    'from_port': port,
+                    'to_port': port,
+                    'cidr': '0.0.0.0/0',
+                    'parent_group_id': sec_group['id'],
+                    'group_id': None
+                }
+            }
+            opencrack.api_request(
+                'compute', req_context.auth_token, req_context.tenant_id,
+                '/os-security-group-rules', data=port_data)
 
     return g_id
-
-
-def get_tgz_downloads(brickconfig):
-    """Literally
-
-    """
-    tgz_download = [app_settings.DOCKERSTACK_BRICKINIT, ]
-    for dep in brickconfig.dockerstack_url:
-        tgz_download.append(dep)
-    tgz_download.append(app_settings.DOCKERSTACK_BRICKDONE)
-
-    return tgz_download
-
-
-def prepare_instance_meta(req_context, brick, brickconfig):
-    """Prepares a set of metadata to get injected into an instance while the
-    deploy is happening so Dockerstack can initialize fully.
-
-    """
-
-    meta = {}
-
-    tmp = {
-        'BRICKS_API': BRICKS_URL,
-        'BRICKS_UUID': brick.uuid,
-        'TOKEN_ID': req_context.auth_token.id,
-    }
-
-    for k, v in tmp.items():
-        meta['_tmp_' + k] = v
-
-    return meta
 
 
 def _drive_floating_ip(req_context, brick, floating_ip):
@@ -215,8 +207,8 @@ def _drive_floating_ip(req_context, brick, floating_ip):
     action_url = '/servers/%s/action' % brick.instance_id
 
     opencrack.api_request('compute',
-                          req_context.auth_token.id,
-                          req_context.auth_token.tenant_id,
+                          req_context.auth_token,
+                          req_context.tenant_id,
                           action_url,
                           action)
 
@@ -230,46 +222,62 @@ def notify_completion(req_context, brick, brickconfig):
         brick
     """
     # get email address
-    email_address = req_context.user.username
-
-    # get the instance details
-    instance_response = opencrack.api_request(
-        'compute',
-        req_context.auth_token.id,
-        req_context.auth_token.tenant_id,
-        '/servers/%s' % brick.instance_id, method='GET')
-
-    server_details = instance_response.json()['server']
-    meta = server_details['metadata']
+    email_address = brick.configuration.get('notification_address',
+                                            'info@clouda.ca')
 
     # send the notification to the user
-    send_installation_notification(email_address, brickconfig, meta)
-    send_admin_notification(brickconfig, meta)
+    send_admin_notification(brick, brickconfig)
+    send_installation_notification(email_address, brick, brickconfig)
 
 
-def send_installation_notification(email, brickconfig, meta):
+def send_installation_notification(email, brick, brickconfig):
     """Send the user who installed the Dockerstack app an email notifying them
     that the installation is complete, and tells them anything extra they
     need to know about configuring or logging into the system.
 
-    Args:
-        email (string) - .
-        configuration (dict) - the application config from app_settings that
-                            was installed.
-        meta (dict) - the information that was fed to the server's metadata
+    :param email:
+    :param brick:
+    :param brickconfig:
     """
-    message = emails.html(text=JinjaTemplate(brickconfig.email_template),
+
+    message = emails.html(text=T(brickconfig.email_template),
                           subject="Your brick is laid",
                           mail_from="support@clouda.ca")
-
     ctx = {
-        'meta': meta,
+        'brick': brick,
         'config': brickconfig
     }
+
     message.send(to=email, render=ctx)
 
 
-def send_admin_notification(configuration, meta):
-    """Notify us that a brick has been installed."""
-    LOG.warning("Brick %s installed" % configuration['name'],
+def send_admin_notification(brick, brickconfig):
+    """Notify us that a brick has been installed.
+
+    :param brick:
+    :param brickconfig:
+    """
+    LOG.warning("Brick %s installed" % brickconfig.name,
                 extra={'stack': True})
+
+
+def do_task_report(results):
+    """Records task results, and does things with them: updates state or
+    what have you
+
+    :param results: [MortarTaskResult, ]
+    """
+    for result in results:
+        if not result.test_result:
+            LOG.warning(
+                "Something Failed for instance %s, %s" % (
+                    result.instance_id, result.message))
+    pass
+
+
+def render_config_file(configfile, brick, brickconfig):
+    """Render a configfile template using the appropriate configuration
+    and variables loaded from the brick env and brickconfig.
+    """
+    tpl = T(configfile.contents)
+    return tpl.render(brick=brick, brickconfig=brickconfig)

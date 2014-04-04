@@ -15,8 +15,9 @@ from wsme import types as wtypes
 import wsmeext.pecan as wsme_pecan
 
 from bricks.api.controllers.v1 import base
-from bricks.api.controllers.v1 import brickconfig
 from bricks.api.controllers.v1 import brick
+from bricks.api.controllers.v1 import brickconfig
+from bricks.api.controllers.v1 import configfile
 from bricks.api.controllers.v1 import link
 
 
@@ -49,34 +50,43 @@ class V1(base.APIBase):
     bricks = [link.Link]
     "Links to the brick resource"
 
+    configfiles = [link.Link]
+    "Links to brickconfigfiles resource"
+
     @classmethod
     def convert(self):
         v1 = V1()
         v1.id = "v1"
-        v1.links = [link.Link.make_link('self', pecan.request.host_url,
-                                        'v1', '', bookmark=True),
-                    link.Link.make_link('describedby',
-                                        'http://docs.openstack.org',
-                                        'developer/bricks/dev',
-                                        'api-spec-v1.html',
-                                        bookmark=True, type='text/html')
+        v1.links = [
+            link.Link.make_link('self', pecan.request.host_url, 'v1', '',
+                                bookmark=True),
+            link.Link.make_link('describedby',
+                                'http://docs.openstack.org',
+                                'developer/bricks/dev',
+                                'api-spec-v1.html', bookmark=True,
+                                type='text/html')
         ]
         v1.media_types = [MediaType('application/json',
                           'application/vnd.openstack.bricks.v1+json')]
 
-        v1.brickconfigs = [link.Link.make_link('self', pecan.request.host_url,
-                                          'brickconfigs', ''),
-                      link.Link.make_link('bookmark',
-                                           pecan.request.host_url,
-                                           'brickconfigs', '',
-                                           bookmark=True)
+        v1.brickconfigs = [
+            link.Link.make_link('self', pecan.request.host_url,
+                                'brickconfigs', ''),
+            link.Link.make_link('bookmark', pecan.request.host_url,
+                                'brickconfigs', '', bookmark=True)
         ]
-        v1.bricks = [link.Link.make_link('self', pecan.request.host_url,
-                                        'bricks', ''),
-                    link.Link.make_link('bookmark',
-                                        pecan.request.host_url,
-                                        'bricks', '',
-                                        bookmark=True)
+        v1.bricks = [
+            link.Link.make_link('self', pecan.request.host_url, 'bricks',
+                                ''),
+            link.Link.make_link('bookmark', pecan.request.host_url,
+                                'bricks', '', bookmark=True)
+        ]
+
+        v1.configfiles = [
+            link.Link.make_link('self', pecan.request.host_url,
+                                'configfiles', ''),
+            link.Link.make_link('bookmark', pecan.request.host_url,
+                                'configfiles', '', bookmark=True)
         ]
         return v1
 
@@ -86,6 +96,7 @@ class Controller(rest.RestController):
 
     brickconfigs = brickconfig.BrickConfigController()
     bricks = brick.BrickController()
+    configfiles = configfile.ConfigFileController()
 
     @wsme_pecan.wsexpose(V1)
     def get(self):

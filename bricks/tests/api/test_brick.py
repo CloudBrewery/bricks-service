@@ -230,7 +230,7 @@ class TestPatch(base.FunctionalTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(200, response.status_code)
         result = self.get_json('/bricks/%s' % cdict['uuid'])
-        expected = {"foo1": "bar1", "foo2": "bar2"}
+        expected = {"foo1": "bar1", "foo2": "bar2", "test": "test"}
         self.assertEqual(expected, result['configuration'])
 
     def test_remove_uuid(self):

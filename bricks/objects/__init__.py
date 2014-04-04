@@ -2,6 +2,9 @@ import functools
 
 from bricks.objects import brick
 from bricks.objects import brickconfig
+from bricks.objects import configfile
+from bricks.objects import mortar_task
+from bricks.objects import mortar_task_report
 
 
 def objectify(klass):
@@ -19,8 +22,14 @@ def objectify(klass):
         return wrapper
     return the_decorator
 
+ConfigFile = configfile.ConfigFile
 BrickConfig = brickconfig.BrickConfig
 Brick = brick.Brick
+MortarTask = mortar_task.MortarTask
+MortarTaskReport = mortar_task_report.MortarTaskReport
 
 __all__ = (BrickConfig,
-           Brick)
+           Brick,
+           MortarTask,
+           MortarTaskReport,
+           ConfigFile)

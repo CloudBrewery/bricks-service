@@ -101,11 +101,28 @@ class BrickConfig(Base):
     description = Column(Text, nullable=True)
     logo = Column(String(255), nullable=True)
     app_version = Column(String(36), nullable=True)
+    minimum_requirement = Column(String(36), nullable=True)
 
     ports = Column(JSONEncodedList, nullable=True)
     # environ is going to exist as a DICT for now and use weights for ordering.
     environ = Column(JSONEncodedDict, nullable=True)
     email_template = Column(Text, nullable=True)
+    help_link = Column(String(255), nullable=True)
+
+
+class ConfigFile(Base):
+    __tablename__ = 'brickconfig_file'
+    __table_args__ = (
+        schema.UniqueConstraint('uuid', name='uniq_configfile0uuid'),
+        Index('configfile_brickconfig_uuid', 'brickconfig_uuid'),
+    )
+
+    id = Column(Integer, primary_key=True)
+    uuid = Column(String(36))
+    brickconfig_uuid = Column(String(36))
+    name = Column(String(255))
+    description = Column(Text, nullable=True)
+    contents = Column(Text, nullable=True)
 
 
 class Brick(Base):
