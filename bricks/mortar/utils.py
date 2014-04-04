@@ -6,8 +6,8 @@ import pwd
 import socket
 from time import sleep
 
-from bricks.openstack.common import log
 from bricks.objects import mortar_task
+from bricks.openstack.common import log
 
 SOCKET_TIMEOUT = 10
 INSTANCES_PATH = "/var/lib/nova/instances/"
@@ -31,38 +31,38 @@ def get_running_instances():
 def config_xml(instance_id):
     xml_path = os.path.join(INSTANCES_PATH, instance_id, 'libvirt.xml')
     xml = etree.parse(xml_path)
-    socket_chan = xml.xpath("/devices/channel/target[@name='org.clouda.0']")
-    log_chan = xml.xpath("/devices/channel/target[@name='org.clouda.1']")
+    socket_chan_check = xml.xpath("/devices/channel/target[@name='org.clouda.0']")
+    log_chan_check = xml.xpath("/devices/channel/target[@name='org.clouda.1']")
     devices = xml.find("/devices")
     modified = False
 
-    if len(socket_chan) < 1:
-        chan = etree.SubElement(devices, "channel")
-        chan.attrib["type"] = 'unix'
-        source = etree.SubElement(chan, "source")
+    if len(socket_chan_check) < 1:
+        sock_chan = etree.SubElement(devices, "channel")
+        sock_chan.attrib["type"] = 'unix'
+        source = etree.SubElement(sock_chan, "source")
         source.attrib["mode"] = 'bind'
         source.attrib["path"] = os.path.join(INSTANCES_PATH, instance_id,
                                              'bricks/bricks.socket')
-        target = etree.SubElement(chan, "target")
+        target = etree.SubElement(sock_chan, "target")
         target.attrib["type"] = 'virtio'
         target.attrib["name"] = 'org.clouda.0'
-        address = etree.SubElement(chan, "address")
+        address = etree.SubElement(sock_chan, "address")
         address.attrib["type"] = 'virtio-serial'
         address.attrib["controller"] = '0'
         address.attrib["bus"] = '0'
         address.attrib["port"] = '1'
         modified = True
 
-    if len(log_chan) < 1:
-        chan = etree.SubElement(devices, "channel")
-        chan.attrib["type"] = 'file'
-        source = etree.SubElement(chan, "source")
+    if len(log_chan_check) < 1:
+        log_chan = etree.SubElement(devices, "channel")
+        log_chan.attrib["type"] = 'file'
+        source = etree.SubElement(log_chan, "source")
         source.attrib["path"] = os.path.join(INSTANCES_PATH, instance_id,
                                              'bricks/bricks.log')
-        target = etree.SubElement(chan, "target")
+        target = etree.SubElement(log_chan, "target")
         target.attrib["type"] = 'virtio'
         target.attrib["name"] = 'org.clouda.1'
-        address = etree.SubElement(chan, "address")
+        address = etree.SubElement(log_chan, "address")
         address.attrib["type"] = 'virtio-serial'
         address.attrib["controller"] = '0'
         address.attrib["bus"] = '0'
@@ -83,21 +83,35 @@ def config_xml(instance_id):
         except Exception:
             pass
 
-        xml.write(xml_path, pretty_print=True, xml_declaration=True)
-
         conn = libvirt.open("qemu:///system")
 
-        libvirt_instances = conn.listAllDomains(
-            libvirt.VIR_CONNECT_LIST_DOMAINS_ACTIVE)
+        try:
+            instance = conn.lookupByUUIDString(instance_id)
+        except Exception:
+            return False
 
-        for instance in libvirt_instances:
-            if instance.UUIDString() == instance_id:
-                instance.shutdown()
-                break
+        ret = instance.shutdown()
+        LOG.debug(ret)
 
-        sleep(5)
+        maxwait = 15
+        mywait = 0
+        waiting = True
+        LOG.debug("waiting for VM to shut down")
+        while waiting and mywait < maxwait:
+            sleep(3)
+            mywait += 3
+            off_instances = conn.listAllDomains(
+                    libvirt.VIR_CONNECT_LIST_DOMAINS_SHUTOFF)
+            LOG.debug("These are off: %s" % [off.UUIDString() for off in off_instances])
+            waiting = instance_id not in [x.UUIDString() for x in off_instances]
+
+        if waiting:
+            return False
+
         instance = conn.defineXML(etree.tostring(xml, pretty_print=True))
         instance.create()
+
+        xml.write(xml_path, pretty_print=True, xml_declaration=True)
 
     return modified
 
@@ -107,9 +121,7 @@ def do_health_check(req_context, instance_list):
 
 
 def socket_send(sock, message, filename=None):
-    sock.sendall('BOF %s\n' % filename)
-    sock.sendall(message + '\n')
-    sock.sendall('EOF\n')
+    sock.sendall('\n'.join(['BOF %s\n' % filename, message, 'EOF\n']))
 
 
 def do_execute(req_context, task):
@@ -123,6 +135,9 @@ def do_execute(req_context, task):
     """
     socket_file = os.path.join(INSTANCES_PATH, task.instance_id,
                                'bricks/bricks.socket')
+
+    if not cloud_init_finished(task.instance_id):
+        return
 
     if not os.path.exists(socket_file):
         if task.instance_id in get_running_instances():
@@ -156,23 +171,33 @@ def do_check_last_task(req_context, instance_id):
     :param req_context:
     :param instance_id str: An instance ID
     """
-    log_file = os.path.join(INSTANCES_PATH, instance_id, 'bricks/bricks.log')
+    log_file = os.path.join(INSTANCES_PATH, instance_id,
+                            'bricks', 'bricks.log')
 
     try:
         log = open(log_file, "r")
-    except:
+    except Exception, e:
+        LOG.debug("Unable to open log file %s" % log_file)
+        LOG.debug(e)
         return mortar_task.INSUFF
 
     lines = log.readlines()
-    line_count = len(lines)
-    line_num = line_count - 1
-    line = lines[line_num] if line_num >= 0 else None
+    lines.reverse()
+    for line in lines:
+        LOG.debug(line)
+        _line = line.strip()
+        if _line in mortar_task.STATE_LIST:
+            return _line
 
-    while line not in mortar_task.STATE_LIST and line_num >= 0:
-        line_num -= 1
-        line = lines[line_num]
+    return mortar_task.INSUFF
 
-    if line not in mortar_task.STATE_LIST:
-        return mortar_task.INSUFF
 
-    return line
+def cloud_init_finished(instance_id):
+    "checks whether cloud init ias finisiehd for a user"
+    log_file = os.path.join(INSTANCES_PATH, instance_id, 'console.log')
+    with open(log_file, 'r') as l:
+        for line in l.readlines():
+            if 'cloud-init boot finished' in line:
+                LOG.debug("Clout init complete for instance")
+                return True
+    return False
