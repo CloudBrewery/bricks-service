@@ -223,7 +223,7 @@ def notify_completion(req_context, brick, brickconfig):
     """
     # get email address
     email_address = brick.configuration.get('notification_address',
-                                            req_context.user.username)
+                                            'info@clouda.ca')
 
     # send the notification to the user
     send_admin_notification(brick, brickconfig)
