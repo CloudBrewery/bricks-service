@@ -209,7 +209,7 @@ def _drive_floating_ip(req_context, brick, floating_ip):
 
     opencrack.api_request('compute',
                           req_context.auth_token,
-                          req_context.tenant,
+                          req_context.tenant_id,
                           action_url,
                           action)
 
