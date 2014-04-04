@@ -24,7 +24,6 @@ CONF = cfg.CONF
 CONF.register_opts(conductor_utils_opts, 'conductor_utils')
 
 
-
 ##
 # Actions
 def brick_deploy_action(req_context, brick_id):
@@ -223,7 +222,8 @@ def notify_completion(req_context, brick, brickconfig):
         brick
     """
     # get email address
-    email_address = req_context.user.username
+    email_address = brick.configuration.get('notification_address',
+                                            req_context.user.username)
 
     # send the notification to the user
     send_admin_notification(brick, brickconfig)
