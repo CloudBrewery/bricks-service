@@ -58,6 +58,14 @@ def brick_deploying_action(req_context, brick_id):
     brick.status = states.DEPLOYING
     brick.save(req_context)
 
+    # Reset instance state
+    nc = opencrack.build_nova_client(req_context)
+    try:
+        nc.reset_state(brick.instance_id, 'active')
+    except nova_exceptions.ClientException, e:
+        LOG.warning('Unable to set %s to active' % brick.instance_id,
+                    e.message)
+
 
 def brick_deployfail_action(req_context, brick_id):
     """Brick has failed to deploy
