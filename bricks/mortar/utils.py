@@ -15,11 +15,10 @@ INSTANCES_PATH = "/var/lib/nova/instances/"
 LOG = log.getLogger(__name__)
 
 
-def get_running_instances():
+def get_local_instances():
     conn = libvirt.openReadOnly("qemu:///system")
 
-    libvirt_instances = conn.listAllDomains(
-        libvirt.VIR_CONNECT_LIST_DOMAINS_ACTIVE)
+    libvirt_instances = conn.listAllDomains(0)
     instances = []
 
     for instance in libvirt_instances:
@@ -148,7 +147,7 @@ def do_execute(req_context, task):
         return
 
     if not os.path.exists(socket_file):
-        if task.instance_id in get_running_instances():
+        if task.instance_id in get_local_instances():
             LOG.debug("%s does not have proper XML. Configuring..." %
                       task.instance_id)
             config_xml(task.instance_id)

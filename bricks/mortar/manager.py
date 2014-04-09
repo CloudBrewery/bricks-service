@@ -76,12 +76,15 @@ class MortarManager(service.PeriodicService):
             self.conductor_rpcapi.do_report_last_task(
                 context, execution_task.instance_id, gt.wait())
 
-        if execution_task.instance_id in utils.get_running_instances():
+        if execution_task.instance_id in utils.get_local_instances():
             LOG.debug('received some things to do for %s',
                       execution_task.instance_id)
             worker = self._spawn_worker(utils.do_execute, context,
                                         execution_task)
             worker.link(worker_callback)
+        else:
+            LOG.debug('Instance %s not on this node. Skipping...',
+                      execution_task.instance_id)
 
     def do_check_instances(self, context, instance_list, topic=None):
         """Do a health check on instances, and report back over rmq the
