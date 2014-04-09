@@ -138,9 +138,13 @@ def do_execute(req_context, task):
 
     conn = libvirt.open("qemu:///system")
     if not instance_started(task.instance_id, conn=conn):
+        LOG.debug("Instance %s not started, going to try "
+                  "starting it." % task.instance_id)
         start_instance(task.instance_id, conn=conn)
 
     if not cloud_init_finished(task.instance_id):
+        LOG.debug("cloud-init not finished, "
+                  "aborting for %s" % task.instance_id)
         return
 
     if not os.path.exists(socket_file):
