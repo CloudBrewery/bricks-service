@@ -136,6 +136,10 @@ def do_execute(req_context, task):
     socket_file = os.path.join(INSTANCES_PATH, task.instance_id,
                                'bricks/bricks.socket')
 
+    conn = libvirt.open("qemu:///system")
+    if not instance_started(task.instance_id, conn=conn):
+        start_instance(task.instance_id, conn=conn)
+
     if not cloud_init_finished(task.instance_id):
         return
 
@@ -201,3 +205,23 @@ def cloud_init_finished(instance_id):
                 LOG.debug("Clout init complete for instance")
                 return True
     return False
+
+
+def instance_started(instance_id, conn=None):
+    conn = conn or libvirt.open("qemu:///system")
+    try:
+        instance = conn.lookupByUUIDString(instance_id)
+        return instance.isActive()
+    except Exception, e:
+        LOG.warning("failed to check if instance is started %s" % e.message)
+        return False
+
+
+def start_instance(instance_id, conn=None):
+    conn = conn or libvirt.open("qemu:///system")
+    try:
+        instance = conn.lookupByUUIDString(instance_id)
+        return instance.create()
+    except Exception, e:
+        LOG.warning("Failed to start instance %s" % e.message)
+        return False
