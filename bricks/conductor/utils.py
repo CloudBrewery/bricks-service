@@ -59,10 +59,12 @@ def brick_deploying_action(req_context, brick_id):
     brick.save(req_context)
 
     # Reset instance state
-    nc = opencrack.build_nova_client(req_context)
+    LOG.debug('Resetting instance state %s' % brick.instance_id)
     try:
-        nc.reset_state(brick.instance_id, 'active')
-    except nova_exceptions.ClientException, e:
+        opencrack.api_request('compute', 'admin',
+                              None, '/servers/%s/action' % brick.instance_id,
+                              {"os-resetState": {"state": "active"}})
+    except Exception, e:
         LOG.warning('Unable to set %s to active' % brick.instance_id,
                     e.message)
 
