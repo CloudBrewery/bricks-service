@@ -3,6 +3,7 @@
 import contextlib
 import errno
 import hashlib
+import mandrill
 import os
 import random
 import re
@@ -27,6 +28,9 @@ utils_opts = [
     cfg.StrOpt('tempdir',
                default=None,
                help='Explicitly specify the temporary working directory.'),
+    cfg.StrOpt('mandrill_key',
+               default='invalid-key',
+               help='Mandrill API Key'),
 ]
 
 CONF = cfg.CONF
@@ -473,3 +477,43 @@ def is_uuid_like(val):
         return str(uuid.UUID(val)) == val
     except (TypeError, ValueError, AttributeError):
         return False
+
+
+class JinjaMailTemplate(object):
+
+    DEFAULT_JINJA_ENVIRONMENT = {}
+
+    def __init__(self, template_text, **kwargs):
+        if 'jinja2' not in globals():
+            globals()['jinja2'] = __import__('jinja2')
+        self.environment = kwargs.get('environment', None) or jinja2.Environment(**self.DEFAULT_JINJA_ENVIRONMENT)
+        self.template = self.environment.from_string(template_text)
+
+    def render(self, **kwargs):
+        return self.template.render(**kwargs)
+
+
+def send_mandrill_mail_api(to, subject, body, sender, signing_domain=None):
+    """Sends email via the Mandrill API.
+
+    :param to: (list of tuples) [[email, name]] - Email Recipient
+    :param subject: (string) - Email subject
+    :param body: (html / string) - A rendered HTML email.
+    :param from: (tuple) [email, name] - Email Sender
+    :param signing_domain: (string) - Domain that is signing & sending.
+    """
+
+    client = mandrill.Mandrill(CONF.mandrill_key)
+
+    for recipient in to:
+        response = client.messages.send({
+            "html": body,
+            "subject": subject,
+            "from_email": sender[0],
+            "from_name": sender[1],
+            "to": [{"email": recipient[0], "name": recipient[1]}],
+            "signing_domain": signing_domain
+        })
+        assert response[0]['status'] not in ['rejected', 'invalid']
+
+    return response

@@ -102,12 +102,11 @@ class NotificationTestCase(base.DbTestCase):
         self.assertEqual(1, notify.call_count)
         self.assertEqual(1, send_admin.call_count)
 
-    @mock.patch('emails.message.Message.send', autospec=True)
+    @mock.patch('bricks.common.utils.send_mandrill_mail_api')
     def test_install_notification(self, send):
 
-        def test_send(s, **kwargs):
-            s.render_data = kwargs['render']
-            self.assertTrue('you have a test' in s.text_body)
+        def test_send(*args, **kwargs):
+            self.assertTrue('you have a test' in kwargs['body'])
 
         send.side_effect = test_send
 
@@ -115,7 +114,7 @@ class NotificationTestCase(base.DbTestCase):
             'admin@foo.com', self.test_brick, self.test_brick_config)
         self.assertEqual(1, send.call_count)
 
-    @mock.patch('emails.message.Message.send', autospec=True)
+    @mock.patch('bricks.common.utils.send_mandrill_mail_api')
     def test_notification_ports(self, send):
 
         self.test_brick_config.ports = [80, 443]
@@ -123,9 +122,8 @@ class NotificationTestCase(base.DbTestCase):
         Ports: {% for port in config.ports %}{{ port }} {% endfor %}
         """
 
-        def test_send(s, **kwargs):
-            s.render_data = kwargs['render']
-            self.assertTrue('Ports: 80 443' in s.text_body)
+        def test_send(*args, **kwargs):
+            self.assertTrue('Ports: 80 443' in kwargs['body'])
         send.side_effect = test_send
 
         utils.send_installation_notification(

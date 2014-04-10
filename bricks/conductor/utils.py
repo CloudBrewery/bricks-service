@@ -2,11 +2,10 @@ import os
 
 from oslo.config import cfg
 
-import emails
-from emails.template import JinjaTemplate as T
-
 from bricks.common import opencrack
 from bricks.common import states
+from bricks.common import utils as common_utils
+from bricks.common.utils import JinjaMailTemplate as T
 from bricks.db import api as dbapi
 from bricks.openstack.common import log
 
@@ -250,15 +249,18 @@ def send_installation_notification(email, brick, brickconfig):
     :param brickconfig:
     """
 
-    message = emails.html(text=T(brickconfig.email_template),
-                          subject="Your brick is laid",
-                          mail_from="support@clouda.ca")
+    tpl = T(brickconfig.email_template)
     ctx = {
         'brick': brick,
         'config': brickconfig
     }
+    body = tpl.render(**ctx)
 
-    message.send(to=email, render=ctx)
+    common_utils.send_mandrill_mail_api(
+        to=[(email, email, ), ],
+        subject="Your brick is laid",
+        body=body,
+        sender=("support@clouda.ca", "CloudA Brick Notifier"))
 
 
 def send_admin_notification(brick, brickconfig):
