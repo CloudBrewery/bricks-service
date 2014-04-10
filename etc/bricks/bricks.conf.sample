@@ -1,4 +1,8 @@
 [DEFAULT]
+
+# Mandrill API Key
+# mandrill_key=invalid-key
+
 # Method to use for authentication: noauth or keystone.
 # (string value)
 #auth_strategy=keystone
