@@ -259,7 +259,7 @@ def send_installation_notification(email, brick, brickconfig):
     common_utils.send_mandrill_mail_api(
         to=[(email, email, ), ],
         subject="Your brick is laid",
-        body=body,
+        text=body,
         sender=("support@clouda.ca", "CloudA Brick Notifier"))
 
 

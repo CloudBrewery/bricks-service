@@ -493,12 +493,12 @@ class JinjaMailTemplate(object):
         return self.template.render(**kwargs)
 
 
-def send_mandrill_mail_api(to, subject, body, sender, signing_domain=None):
+def send_mandrill_mail_api(to, subject, sender, html=None, text=None,
+                           signing_domain=None):
     """Sends email via the Mandrill API.
 
     :param to: (list of tuples) [[email, name]] - Email Recipient
     :param subject: (string) - Email subject
-    :param body: (html / string) - A rendered HTML email.
     :param from: (tuple) [email, name] - Email Sender
     :param signing_domain: (string) - Domain that is signing & sending.
     """
@@ -507,7 +507,10 @@ def send_mandrill_mail_api(to, subject, body, sender, signing_domain=None):
 
     for recipient in to:
         response = client.messages.send({
-            "html": body,
+            "auto_html": True,
+            "auto_text": True,
+            "html": html,
+            "text": text,
             "subject": subject,
             "from_email": sender[0],
             "from_name": sender[1],
