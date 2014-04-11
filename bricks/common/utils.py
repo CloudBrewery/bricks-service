@@ -507,7 +507,7 @@ def send_mandrill_mail_api(to, subject, sender, html=None, text=None,
 
     for recipient in to:
         response = client.messages.send({
-            "auto_html": True,
+            "auto_html": False,
             "auto_text": True,
             "html": html,
             "text": text,
