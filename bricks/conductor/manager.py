@@ -167,6 +167,14 @@ class ConductorManager(service.PeriodicService):
         instances = [brick.instance_id for brick in bricks]
         self.mortar_rpcapi.do_check_instances(context, instances)
 
+    @periodic_task.periodic_task(spacing=CONF.conductor.deleted_job_interval)
+    def check_for_deleted_instances(self, context):
+        """
+        Task initialization to check for deleted instances, and clean them
+        up internally.
+        """
+        self._spawn_worker(utils.deleted_instances_cleanup_action, req_context)
+
     def do_report_last_task(self, context, instance_id, task_status):
         """A report back from mortar that a task has been completed.
 

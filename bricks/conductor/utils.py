@@ -108,6 +108,38 @@ def brick_destroy_action(req_context, brick_id):
     db.destroy_brick(brick_id)
 
 
+def deleted_instances_cleanup_action(req_context):
+    """checks nova API for instance UUIDs of all instances to compare
+    against what we're tracking. If nova doesn't track one of the
+    instances, we should delete the associated brick so it doesn't get
+    cluttered up.
+
+    :param req_context: admin request context
+    """
+    # get all nova instances
+    novaclient = opencrack.build_nova_client(req_context)
+    novaclient.authenticate()
+    servers = novaclient.servers.list()
+    server_uuids = [server.id for server in servers]
+
+    # get all bricks
+    db = dbapi.get_instance()
+    bricks = db.get_brick_list()
+
+    # generate a list of bricks whose instance_ids don't show up in the
+    # nova list
+    bricks_to_clean = []
+    for brick in bricks:
+        if brick.instance_id and brick.instance_id not in server_uuids:
+            # brick has an instance record, but nova is not reporting
+            # as being there.
+            bricks_to_clean.append(brick)
+
+    # delete the bricks in that list
+    for brick in bricks_to_clean:
+        db.destroy_brick(brick.id)
+
+
 ##
 # Action actions
 def _deploy_nova_server(req_context, brick, brickconfig):
