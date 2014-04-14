@@ -78,6 +78,10 @@ class DbBrickTestCase(base.DbTestCase):
         self.assertRaises(exception.BrickNotFound,
                           self.dbapi.get_brick, br['id'])
 
+        # make sure it doesn't show up in lists as well
+        bricks = self.dbapi.get_brick_list()
+        self.assertEqual(0, len(bricks))
+
     def test_destroy_brick_that_does_not_exist(self):
         self.assertRaises(exception.BrickNotFound,
                           self.dbapi.destroy_brick, 1337)

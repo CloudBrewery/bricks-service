@@ -133,7 +133,8 @@ class Brick(Base):
         schema.UniqueConstraint('uuid', name='uniq_brick0uuid'),
         Index('brick_config_uuid', 'brickconfig_uuid'),
         Index('brick_tenant_id', 'tenant_id'),
-        Index('brick_instance_uuid', 'instance_id')
+        Index('brick_instance_uuid', 'instance_id'),
+        Index('brick_deleted', 'deleted')
     )
 
     id = Column(Integer, primary_key=True)
@@ -146,3 +147,6 @@ class Brick(Base):
     status = Column(String(36))
     configuration = Column(JSONEncodedDict)
     deploy_log = Column(Text)
+
+    # deleted flag, we don't actualyl want to delete data here.
+    deleted = Column(Boolean, default=False)

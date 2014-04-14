@@ -102,6 +102,7 @@ def _check_brickconfig_in_use(brickconfig, session):
     if brickconfig_uuid is not None:
         query = model_query(models.Brick, session=session)
         query = query.filter_by(brickconfig_uuid=brickconfig_uuid)
+        query = query.filter_by(deleted=False)
 
         try:
             brick_ref = query.one()
@@ -132,6 +133,8 @@ class Connection(api.Connection):
             query = query.filter_by(status=filters['status'])
         if 'tenant_id' in filters:
             query = query.filter_by(tenant_id=filters['tenant_id'])
+
+        query = query.filter_by(deleted=False)
 
         return query
 
@@ -198,6 +201,8 @@ class Connection(api.Connection):
         if tenant_id:
             query = query.filter_by(tenant_id=tenant_id)
 
+        query = query.filter_by(deleted=False)
+
         try:
             return query.one()
         except NoResultFound:
@@ -211,6 +216,8 @@ class Connection(api.Connection):
             query = add_identity_filter(query, brick_id)
             if tenant_id:
                 query = query.filter_by(tenant_id=tenant_id)
+
+            query = query.filter_by(deleted=False)
 
             count = query.update(values)
             if count != 1:
@@ -232,7 +239,7 @@ class Connection(api.Connection):
             except NoResultFound:
                 raise exception.BrickNotFound(brick=brick_id)
 
-            query.delete()
+            query.update({'deleted': True})
 
     #################
     # BrickConfig API
