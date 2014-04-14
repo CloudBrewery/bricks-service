@@ -15,12 +15,24 @@ CONF.import_group('keystone_authtoken', 'keystoneclient.middleware.auth_token')
 
 
 def build_nova_client(req_context):
-    c = nova_client.Client(req_context.user,
-                           req_context.auth_token,
-                           project_id=req_context.tenant,
+    if req_context.auth_token == 'admin' and req_context.tenant is None:
+        username = CONF.keystone_authtoken.admin_user
+        password = CONF.keystone_authtoken.admin_password
+        tenant_name = CONF.keystone_authtoken.tenant_name
+    else:
+        username = req_context.user
+        password = req_context.auth_token
+        tenant_name = req_context.tenant
+
+    c = nova_client.Client(username,
+                           password,
+                           project_id=tenant_name,
                            auth_url=CONF.keystone_authtoken.auth_uri,
                            insecure=False)
-    c.client.auth_token = req_context.auth_token
+
+    if req_context.auth_token != 'admin':
+        c.client.auth_token = req_context.auth_token
+
     return c
 
 
