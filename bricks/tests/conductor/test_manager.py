@@ -160,6 +160,22 @@ class ManagerTestCase(base.DbTestCase):
         brick.refresh(self.context)
         self.assertEqual(states.DEPLOYING, brick.status)
 
+    @mock.patch('bricks.mortar.rpcapi.MortarAPI.do_tail_brick_log')
+    def test_tailing_brick_log(self, do_tail_fn):
+        def tailer(ctx, brick_log):
+            brick_log.log = "asdf1234"
+            return brick_log
+        do_tail_fn.side_effect = tailer
+
+        brick = self.dbapi.create_brick(
+            utils.get_test_brick(status=states.DEPLOYDONE))
+
+        self.service.start()
+        brick_log = self.service.do_tail_brick_log(self.context,
+                                                   brick.uuid,
+                                                   10)
+        self.assertEqual(brick_log.log, 'asdf1234')
+
     @mock.patch('bricks.conductor.utils.deleted_instances_cleanup_action')
     def test_check_deleted_instances_call(self, deleted_call):
         self.service.start()

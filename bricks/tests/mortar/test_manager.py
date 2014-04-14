@@ -6,6 +6,7 @@ from oslo.config import cfg
 from bricks.mortar import manager
 from bricks.openstack.common import context
 from bricks.tests.db import base
+from bricks import objects
 
 
 CONF = cfg.CONF
@@ -20,6 +21,25 @@ class ManagerTestCase(base.DbTestCase):
 
     def test_do_execute_simple(self):
         self.assertEqual(True, True)
+
+    @mock.patch('bricks.mortar.utils.do_tail_brick_log')
+    def test_tail_log(self, do_tail_fn):
+        def tailer(ctx, brick_log):
+            brick_log.log = "asdf1234"
+            return brick_log
+        do_tail_fn.side_effect = tailer
+
+        self.service.start()
+        bl = objects.BrickLog()
+        bl.uuid = 'x'
+        bl.instance_id = 'y'
+        bl.length = 10
+        sut_bl = self.service.do_tail_brick_log(self.context, bl)
+
+        self.assertEqual(sut_bl.log, "asdf1234")
+        self.assertEqual(sut_bl.uuid, bl.uuid)
+        self.assertEqual(sut_bl.instance_id, bl.instance_id)
+        self.assertEqual(sut_bl.length, bl.length)
 
     def test__spawn_worker(self):
         func_mock = mock.Mock()

@@ -24,6 +24,7 @@ from oslo.config import cfg
 from bricks.common import exception
 from bricks.common import utils
 from bricks.common import states
+from bricks import objects
 from bricks.openstack.common import timeutils
 from bricks.tests.api import base
 from bricks.tests.api import utils as apiutils
@@ -164,7 +165,8 @@ class TestPatch(base.FunctionalTest):
                                        id=None)
         self.dbapi.create_brick(cdict)
         response = self.patch_json('/bricks/%s' % cdict['uuid'],
-                                   [{'path': '/configuration/a', 'op': 'remove'}])
+                                   [{'path': '/configuration/a',
+                                     'op': 'remove'}])
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(200, response.status_code)
         result = self.get_json('/bricks/%s' % cdict['uuid'])
@@ -182,7 +184,8 @@ class TestPatch(base.FunctionalTest):
 
         # Removing one item from the collection
         response = self.patch_json('/bricks/%s' % cdict['uuid'],
-                                   [{'path': '/configuration/foo2', 'op': 'remove'}])
+                                   [{'path': '/configuration/foo2',
+                                     'op': 'remove'}])
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(200, response.status_code)
         result = self.get_json('/bricks/%s' % cdict['uuid'])
@@ -191,7 +194,8 @@ class TestPatch(base.FunctionalTest):
 
         # Removing the configuration (cannot, mandatory)
         response = self.patch_json('/bricks/%s' % cdict['uuid'],
-                                   [{'path': '/configuration', 'op': 'remove'}],
+                                   [{'path': '/configuration',
+                                     'op': 'remove'}],
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(400, response.status_code)
@@ -203,9 +207,10 @@ class TestPatch(base.FunctionalTest):
 
     def test_remove_non_existent_property_fail(self):
         cdict = apiutils.get_test_brick_json()
-        response = self.patch_json('/bricks/%s' % cdict['uuid'],
-                             [{'path': '/configuration/non-existent', 'op': 'remove'}],
-                             expect_errors=True)
+        response = self.patch_json(
+            '/bricks/%s' % cdict['uuid'],
+            [{'path': '/configuration/non-existent', 'op': 'remove'}],
+            expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(400, response.status_code)
         self.assertTrue(response.json['error_message'])
@@ -223,9 +228,11 @@ class TestPatch(base.FunctionalTest):
     def test_add_multi(self):
         cdict = apiutils.get_test_brick_json()
         response = self.patch_json('/bricks/%s' % cdict['uuid'],
-                                   [{'path': '/configuration/foo1', 'value': 'bar1',
+                                   [{'path': '/configuration/foo1',
+                                     'value': 'bar1',
                                      'op': 'add'},
-                                    {'path': '/configuration/foo2', 'value': 'bar2',
+                                    {'path': '/configuration/foo2',
+                                     'value': 'bar2',
                                      'op': 'add'}])
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(200, response.status_code)
@@ -260,7 +267,8 @@ class TestPost(base.FunctionalTest):
             result = self.get_json('/bricks/%s' % cdict['uuid'])
             self.assertEqual(cdict['uuid'], result['uuid'])
             self.assertFalse(result['updated_at'])
-            return_created_at = timeutils.parse_isotime(result['created_at']).replace(tzinfo=None)
+            return_created_at = timeutils.parse_isotime(
+                result['created_at']).replace(tzinfo=None)
             self.assertEqual(test_time, return_created_at)
 
             # assert that the deploy task has been started.
@@ -329,32 +337,57 @@ class TestStatusUpdate(base.FunctionalTest):
     def test_brick_deploying(self):
         cdict = dbutils.get_test_brick()
         self.dbapi.create_brick(cdict)
-        with mock.patch('bricks.conductor.rpcapi.ConductorAPI.do_brick_deploying') \
-            as deploying:
+        with mock.patch('bricks.conductor.rpcapi.ConductorAPI'
+                        '.do_brick_deploying') as deploying:
             self.post_json('/bricks/%s/status_update' % cdict['uuid'],
                            {'type': states.DEPLOYING}, context=self.context)
 
-            result = self.get_json('/bricks/%s' % cdict['uuid'])
+            self.get_json('/bricks/%s' % cdict['uuid'])
             self.assertEqual(1, deploying.call_count)
 
     def test_brick_deployfail(self):
         cdict = dbutils.get_test_brick()
         self.dbapi.create_brick(cdict)
-        with mock.patch('bricks.conductor.rpcapi.ConductorAPI.do_brick_deployfail') \
-            as deployfail:
+        with mock.patch('bricks.conductor.rpcapi.ConductorAPI.'
+                        'do_brick_deployfail') as deployfail:
             self.post_json('/bricks/%s/status_update' % cdict['uuid'],
                            {'type': states.DEPLOYFAIL}, context=self.context)
 
-            result = self.get_json('/bricks/%s' % cdict['uuid'])
+            self.get_json('/bricks/%s' % cdict['uuid'])
             self.assertEqual(1, deployfail.call_count)
 
     def test_brick_deploydone(self):
         cdict = dbutils.get_test_brick()
         self.dbapi.create_brick(cdict)
-        with mock.patch('bricks.conductor.rpcapi.ConductorAPI.do_brick_deploydone') \
-            as deploydone:
+        with mock.patch('bricks.conductor.rpcapi.ConductorAPI'
+                        '.do_brick_deploydone') as deploydone:
             self.post_json('/bricks/%s/status_update' % cdict['uuid'],
                            {'type': states.DEPLOYDONE}, context=self.context)
 
-            result = self.get_json('/bricks/%s' % cdict['uuid'])
+            self.get_json('/bricks/%s' % cdict['uuid'])
             self.assertEqual(1, deploydone.call_count)
+
+
+class TestLogTailing(base.FunctionalTest):
+
+    @mock.patch('bricks.conductor.rpcapi.ConductorAPI.do_tail_brick_log')
+    def test_fetch_brick_log(self, do_tail_fn):
+        cdict = dbutils.get_test_brick()
+        brick = self.dbapi.create_brick(cdict)
+
+        def tailer(ctx, brick_uuid, length):
+            bl = objects.BrickLog()
+            bl.uuid = brick_uuid
+            bl.instance_id = brick.instance_id
+            bl.log = 'asdf1234'
+            bl.length = 10
+            return bl
+
+        do_tail_fn.side_effect = tailer
+        result = self.get_json('/bricks/%s/brick_log' % cdict['uuid'])
+
+        self.assertEqual(1, do_tail_fn.call_count)
+        self.assertEqual('asdf1234', result['log'])
+        self.assertEqual(brick.uuid, result['uuid'])
+        self.assertEqual(brick.instance_id, result['instance_id'])
+        self.assertEqual('10', result['length'])

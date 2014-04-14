@@ -232,3 +232,28 @@ def start_instance(instance_id, conn):
     except Exception, e:
         LOG.warning("Failed to start instance %s" % e.message)
         return False
+
+
+def do_tail_brick_log(req_context, brick_log):
+    """Get the last X lines of the brick log for the instance.
+
+    :param context:
+    :param brick_log: (objects.BrickLog) an empty log object, waiting to be
+                      filled with loggy goodness.
+
+    :returns: brick_log with the log filled in
+    """
+    log_file = os.path.join(INSTANCES_PATH, 'bricks', brick_log.instance_id,
+                            'bricks.log')
+    if not os.path.exists(log_file):
+        # is the instance supposed to be running here, even though there is no
+        # log file?
+        if brick_log.instance_id in get_local_instances():
+            # return the empty log :(
+            brick_log.log = "NO LOG"
+    else:
+        with open(log_file, 'r') as log:
+            log_lines = log.readlines()[-brick_log.length:]
+
+        brick_log.log = '\n'.join(log_lines)
+    return brick_log

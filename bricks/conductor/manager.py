@@ -15,7 +15,7 @@ from bricks.common import service
 from bricks.common import states
 from bricks.db import api as dbapi
 from bricks.objects import base as objects_base
-from bricks.objects import MortarTask
+from bricks.objects import MortarTask, BrickLog
 from bricks.openstack.common import lockutils
 from bricks.openstack.common import log
 from bricks.openstack.common import periodic_task
@@ -221,6 +221,19 @@ class ConductorManager(service.PeriodicService):
         else:
             LOG.warning("Brick %s received task state %s on invalid state "
                         "%s" % (brick.uuid, task_status, brick.status))
+
+    def do_tail_brick_log(self, context, brick_uuid, length, topic=None):
+        """Tail a brick's log running on a compute node. useful for debugging.
+        :param context: x.
+        :param brick_uuid: (uuid) a brick identifier (id, or uuid works)
+        :param length: (int) max number of lines to tail.
+        """
+        brick = self.dbapi.get_brick(brick_uuid)
+        log = BrickLog()
+        log.uuid = brick.uuid
+        log.instance_id = brick.instance_id
+        log.length = length
+        return self.mortar_rpcapi.do_tail_brick_log(context, log)
 
     @lockutils.synchronized(WORKER_SPAWN_lOCK, 'bricks-')
     def _spawn_worker(self, func, *args, **kwargs):

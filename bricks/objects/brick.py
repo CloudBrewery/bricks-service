@@ -68,3 +68,13 @@ class Brick(base.BricksObject):
             if (hasattr(self, base.get_attrname(field)) and
                     self[field] != current[field]):
                 self[field] = current[field]
+
+
+class BrickLog(base.BricksObject):
+
+    fields = {
+        'uuid': utils.str_or_none,
+        'instance_id': utils.str_or_none,
+        'length': utils.str_or_none,
+        'log': utils.str_or_none,
+    }

@@ -72,9 +72,16 @@ class ConductorAPI(bricks.openstack.common.rpc.proxy.RpcProxy):
                   topic=topic or self.topic)
 
     def do_report_last_task(self, context, instance_id, task_status,
-                           topic=None):
+                            topic=None):
         self.cast(context,
                   self.make_msg('do_report_last_task',
                                 instance_id=instance_id,
                                 task_status=task_status),
                   topic=topic or self.topic)
+
+    def do_tail_brick_log(self, context, brick_id, length, topic=None):
+        return self.call(context,
+                         self.make_msg('do_tail_brick_log',
+                                       brick_id=brick_id,
+                                       length=length),
+                         topic=topic or self.topic)

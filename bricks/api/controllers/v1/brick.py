@@ -89,6 +89,18 @@ class Brick(base.APIBase):
         return brick
 
 
+class BrickLog(base.APIBase):
+    uuid = types.uuid
+    instance_id = wtypes.text
+    length = wtypes.IntegerType(minimum=0)
+    log = wtypes.text
+
+    def __init__(self, **kwargs):
+        self.fields = objects.BrickLog.fields.keys()
+        for k in self.fields:
+            setattr(self, k, kwargs.get(k))
+
+
 class BricksCollection(collection.Collection):
     """API representation of a collection of Bricks."""
 
@@ -114,6 +126,7 @@ class BrickController(rest.RestController):
 
     _custom_actions = {
         'detail': ['GET'],
+        'brick_log': ['GET'],
         'status_update': ['POST'],
     }
 
@@ -217,6 +230,26 @@ class BrickController(rest.RestController):
         rpc_brick = objects.Brick.get_by_uuid(pecan.request.context,
                                               brick_uuid, tenant_id=tenant_id)
         return Brick.convert_with_links(rpc_brick)
+
+    @wsme_pecan.wsexpose(BrickLog, types.uuid, wtypes.IntegerType(minimum=0))
+    def get_brick_log(self, brick_uuid, length=None):
+        """Retrieve a the last bunch of lines from a brick's brick.log.
+
+        :param brick_uuid: (uuid) a brick's identifier
+        :param length: (int) the number of lines to tail.
+        """
+        check_policy(pecan.request.context, 'get_one')
+        req_ctx = pecan.request.context
+        tenant_id = req_ctx.tenant_id if not req_ctx.is_admin else None
+        rpc_brick = objects.Brick.get_by_uuid(pecan.request.context,
+                                              brick_uuid, tenant_id=tenant_id)
+        if not length:
+            length = 40
+
+        log = pecan.request.rpcapi.do_tail_brick_log(pecan.request.context,
+                                                     rpc_brick.uuid,
+                                                     length=length)
+        return BrickLog(**log.as_dict())
 
     @wsme_pecan.wsexpose(Brick, body=Brick, status_code=201)
     def post(self, brick):

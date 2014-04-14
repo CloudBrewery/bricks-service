@@ -102,6 +102,14 @@ class MortarManager(service.PeriodicService):
         self.conductor_rpcapi.do_report_last_task(
             context, instance_id, task_result)
 
+    def do_tail_brick_log(self, context, brick_log, topic=None):
+        """Tail the bricks log for the last X lines written out.
+        :param context:
+        :param brick_log: (objects.BrickLog) a bricklog object specced
+        """
+
+        return utils.do_tail_brick_log(context, brick_log)
+
     def periodic_tasks(self, context, raise_on_error=False):
         """Periodic tasks are run at pre-specified interval."""
         return self.run_periodic_tasks(context, raise_on_error=raise_on_error)

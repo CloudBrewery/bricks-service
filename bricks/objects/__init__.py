@@ -25,11 +25,13 @@ def objectify(klass):
 ConfigFile = configfile.ConfigFile
 BrickConfig = brickconfig.BrickConfig
 Brick = brick.Brick
+BrickLog = brick.BrickLog
 MortarTask = mortar_task.MortarTask
 MortarTaskReport = mortar_task_report.MortarTaskReport
 
 __all__ = (BrickConfig,
            Brick,
+           BrickLog,
            MortarTask,
            MortarTaskReport,
            ConfigFile)

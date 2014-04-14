@@ -57,3 +57,13 @@ class RPCAPITestCase(base.DbTestCase):
         self._test_rpcapi(
             'do_execute', 'cast',
             execution_task=objects.MortarTask().obj_to_primitive())
+
+    def test_tail_log(self):
+        bricklog = objects.BrickLog()
+        bricklog.uuid = 'x'
+        bricklog.instance_id = 'y'
+        bricklog.length = 10
+
+        self._test_rpcapi(
+            'do_tail_brick_log', 'call',
+            brick_log=bricklog.obj_to_primitive())

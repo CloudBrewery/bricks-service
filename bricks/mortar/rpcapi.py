@@ -53,3 +53,10 @@ class MortarAPI(bricks.openstack.common.rpc.proxy.RpcProxy):
                   self.make_msg('do_check_last_task',
                                 instance_id=instance_id),
                   topic=topic or self.topic)
+
+    def do_tail_brick_log(self, context, brick_log, topic=None):
+        return self.call(
+            context,
+            self.make_msg('do_tail_brick_log',
+                          brick_log=brick_log),
+            topic=topic or self.topic)
