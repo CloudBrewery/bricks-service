@@ -92,8 +92,12 @@ def config_xml(instance_id):
             except Exception:
                 return False
 
-            ret = instance.shutdown()
-            LOG.debug(ret)
+            try:
+                ret = instance.shutdown()
+                LOG.debug(ret)
+            except Exception:
+                #Our instance is already off
+                pass
 
             maxwait = 15
             mywait = 0
