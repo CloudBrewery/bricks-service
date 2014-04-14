@@ -42,7 +42,7 @@ conductor_opts = [
                default=15,
                help='Seconds between job initialization tasks.'),
     cfg.IntOpt('deploying_job_interval',
-               default=5,
+               default=15,
                help='Seconds between deploying job checks.'),
     cfg.IntOpt('deleted_job_interval',
                default=60,
