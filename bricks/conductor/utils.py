@@ -116,16 +116,19 @@ def deleted_instances_cleanup_action(req_context):
 
     :param req_context: admin request context
     """
+    LOG.debug("Cleaning up bricks that fell out of sync with instances")
 
     # get all bricks
     db = dbapi.get_instance()
     bricks = db.get_brick_list()
+    LOG.debug("Have %s bricks" % len(bricks))
 
     # get all nova instances
     novaclient = opencrack.build_nova_client(req_context)
     novaclient.authenticate()
     servers = novaclient.servers.list()
     server_uuids = [server.id for server in servers]
+    LOG.debug("Have %s instances" % len(server_uuids))
 
     # generate a list of bricks whose instance_ids don't show up in the
     # nova list
@@ -136,8 +139,12 @@ def deleted_instances_cleanup_action(req_context):
             # as being there.
             bricks_to_clean.append(brick)
 
+    LOG.debug("Have %s bricks to clean up" % len(bricks_to_clean))
+
     # delete the bricks in that list
     for brick in bricks_to_clean:
+        LOG.debug("Destroying unused brick %s for instance %s" % (
+            brick.id, brick.instance_id))
         db.destroy_brick(brick.id)
 
 
