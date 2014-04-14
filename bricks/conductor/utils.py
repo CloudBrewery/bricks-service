@@ -122,12 +122,19 @@ def deleted_instances_cleanup_action(req_context):
     db = dbapi.get_instance()
     bricks = db.get_brick_list()
     LOG.debug("Have %s bricks" % len(bricks))
+    if len(bricks) == 0:
+        # don't even bother continuing, no bricks to check anyway.
+        return
 
-    # get all nova instances
+    # get all nova instances for all tenants
     novaclient = opencrack.build_nova_client(req_context)
     novaclient.authenticate()
     servers = novaclient.servers.list(search_opts={'all_tenants': 1})
     server_uuids = [server.id for server in servers]
+
+    if len(server_uuids) == 0:
+        # don't even bother continuing, this is most likely a failed call.
+        return
 
     LOG.debug("Have %s instances" % len(server_uuids))
 

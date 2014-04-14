@@ -160,6 +160,13 @@ class ManagerTestCase(base.DbTestCase):
         brick.refresh(self.context)
         self.assertEqual(states.DEPLOYING, brick.status)
 
+    @mock.patch('bricks.conductor.utils.deleted_instances_cleanup_action')
+    def test_check_deleted_instances_call(self, deleted_call):
+        self.service.start()
+        self.service.check_for_deleted_instances(self.context)
+        self.service._worker_pool.waitall()
+        self.assertEqual(1, deleted_call.call_count)
+
     @mock.patch('bricks.conductor.utils.notify_completion')
     def test_report_task_done(self, notify_fn):
         brick = self.dbapi.create_brickconfig(
