@@ -79,9 +79,9 @@ class ConductorAPI(bricks.openstack.common.rpc.proxy.RpcProxy):
                                 task_status=task_status),
                   topic=topic or self.topic)
 
-    def do_tail_brick_log(self, context, brick_id, length, topic=None):
+    def do_tail_brick_log(self, context, brick_uuid, length, topic=None):
         return self.call(context,
                          self.make_msg('do_tail_brick_log',
-                                       brick_id=brick_id,
+                                       brick_uuid=brick_uuid,
                                        length=length),
                          topic=topic or self.topic)

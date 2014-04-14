@@ -93,5 +93,5 @@ class RPCAPITestCase(base.DbTestCase):
 
     def test_do_brick_log_tail(self):
         self._test_rpcapi('do_tail_brick_log', 'call',
-                          brick_id=self.fake_brick['uuid'],
+                          brick_uuid=self.fake_brick['uuid'],
                           length=10)
