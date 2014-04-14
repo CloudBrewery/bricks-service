@@ -186,7 +186,11 @@ class ConductorManager(service.PeriodicService):
         """
         from bricks.objects.mortar_task import (COMPLETE, RUNNING, ERROR,
                                                 INSUFF, STATE_LIST)
-        assert task_status in STATE_LIST
+        if task_status not in STATE_LIST:
+            LOG.debug(
+                "Received invalid task state for instance %s state " % (
+                    instance_id, task_status))
+            return
 
         brick = self.dbapi.get_brick(brick_id=None, instance_id=instance_id)
 
