@@ -116,15 +116,16 @@ def deleted_instances_cleanup_action(req_context):
 
     :param req_context: admin request context
     """
+
+    # get all bricks
+    db = dbapi.get_instance()
+    bricks = db.get_brick_list()
+
     # get all nova instances
     novaclient = opencrack.build_nova_client(req_context)
     novaclient.authenticate()
     servers = novaclient.servers.list()
     server_uuids = [server.id for server in servers]
-
-    # get all bricks
-    db = dbapi.get_instance()
-    bricks = db.get_brick_list()
 
     # generate a list of bricks whose instance_ids don't show up in the
     # nova list
