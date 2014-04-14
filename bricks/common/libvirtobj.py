@@ -10,7 +10,7 @@ class BricksLibvirt():
             self.conn = libvirt.open(path)
 
     def __enter__(self):
-        pass
+        return self.conn
 
     def __exit__(self, *args):
         try:

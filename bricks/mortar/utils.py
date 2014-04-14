@@ -18,7 +18,7 @@ LOG = log.getLogger(__name__)
 
 def get_local_instances():
     with BricksLibvirt() as libvirtobj:
-        libvirt_instances = libvirtobj.conn.listAllDomains(0)
+        libvirt_instances = libvirtobj.listAllDomains(0)
 
     instances = []
 
@@ -88,7 +88,7 @@ def config_xml(instance_id):
 
         with BricksLibvirt(ro=False) as libvirtobj:
             try:
-                instance = libvirtobj.conn.lookupByUUIDString(instance_id)
+                instance = libvirtobj.lookupByUUIDString(instance_id)
             except Exception:
                 return False
 
@@ -102,7 +102,7 @@ def config_xml(instance_id):
             while waiting and mywait < maxwait:
                 sleep(3)
                 mywait += 3
-                off_instances = libvirtobj.conn.listAllDomains(
+                off_instances = libvirtobj.listAllDomains(
                     libvirt.VIR_CONNECT_LIST_DOMAINS_SHUTOFF)
                 LOG.debug("These are off: %s" % [off.UUIDString()
                                                  for off in off_instances])
@@ -112,7 +112,7 @@ def config_xml(instance_id):
             if waiting:
                 return False
 
-            instance = libvirtobj.conn.defineXML(
+            instance = libvirtobj.defineXML(
                 etree.tostring(xml, pretty_print=True))
             instance.create()
 
@@ -142,10 +142,10 @@ def do_execute(req_context, task):
                                'bricks.socket')
 
     with BricksLibvirt(ro=False) as libvirtobj:
-        if not instance_started(task.instance_id, libvirtobj.conn):
+        if not instance_started(task.instance_id, libvirtobj):
             LOG.debug("Instance %s not started, going to try "
                       "starting it." % task.instance_id)
-            start_instance(task.instance_id, libvirtobj.conn)
+            start_instance(task.instance_id, libvirtobj)
 
     if not cloud_init_finished(task.instance_id):
         LOG.debug("cloud-init not finished, "
