@@ -176,6 +176,7 @@ class ConductorManager(service.PeriodicService):
         Task initialization to check for deleted instances, and clean them
         up internally.
         """
+        LOG.debug("Spawning delete job task")
         self._spawn_worker(utils.deleted_instances_cleanup_action, context)
 
     def do_report_last_task(self, context, instance_id, task_status):
