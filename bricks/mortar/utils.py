@@ -74,9 +74,9 @@ def config_xml(instance_id):
 
     if modified:
         try:
-            os.mkdirs(os.path.join(INSTANCES_PATH, 'bricks', instance_id))
-        except Exception:
-            pass
+            os.makedirs(os.path.join(INSTANCES_PATH, 'bricks', instance_id))
+        except Exception as e:
+            LOG.debug("Error creating directory %s" % str(e))
 
         try:
             uid = pwd.getpwnam("libvirt-qemu").pw_uid
