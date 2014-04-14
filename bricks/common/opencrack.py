@@ -18,7 +18,7 @@ def build_nova_client(req_context):
     if req_context.auth_token == 'admin' and req_context.tenant is None:
         username = CONF.keystone_authtoken.admin_user
         password = CONF.keystone_authtoken.admin_password
-        tenant_name = CONF.keystone_authtoken.tenant_name
+        tenant_name = CONF.keystone_authtoken.admin_tenant_name
     else:
         username = req_context.user
         password = req_context.auth_token
