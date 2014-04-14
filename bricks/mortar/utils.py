@@ -30,7 +30,8 @@ def get_local_instances():
 def config_xml(instance_id):
     xml_path = os.path.join(INSTANCES_PATH, instance_id, 'libvirt.xml')
     xml = etree.parse(xml_path)
-    socket_chan_check = xml.xpath("/devices/channel/target[@name='org.clouda.0']")
+    socket_chan_check = xml.xpath(
+        "/devices/channel/target[@name='org.clouda.0']")
     log_chan_check = xml.xpath("/devices/channel/target[@name='org.clouda.1']")
     devices = xml.find("/devices")
     modified = False
@@ -40,8 +41,9 @@ def config_xml(instance_id):
         sock_chan.attrib["type"] = 'unix'
         source = etree.SubElement(sock_chan, "source")
         source.attrib["mode"] = 'bind'
-        source.attrib["path"] = os.path.join(INSTANCES_PATH, instance_id,
-                                             'bricks/bricks.socket')
+        source.attrib["path"] = os.path.join(INSTANCES_PATH, 'bricks',
+                                             instance_id,
+                                             'bricks.socket')
         target = etree.SubElement(sock_chan, "target")
         target.attrib["type"] = 'virtio'
         target.attrib["name"] = 'org.clouda.0'
@@ -56,8 +58,9 @@ def config_xml(instance_id):
         log_chan = etree.SubElement(devices, "channel")
         log_chan.attrib["type"] = 'file'
         source = etree.SubElement(log_chan, "source")
-        source.attrib["path"] = os.path.join(INSTANCES_PATH, instance_id,
-                                             'bricks/bricks.log')
+        source.attrib["path"] = os.path.join(INSTANCES_PATH, 'bricks',
+                                             instance_id,
+                                             'bricks.log')
         target = etree.SubElement(log_chan, "target")
         target.attrib["type"] = 'virtio'
         target.attrib["name"] = 'org.clouda.1'
@@ -70,14 +73,14 @@ def config_xml(instance_id):
 
     if modified:
         try:
-            os.mkdir(os.path.join(INSTANCES_PATH, instance_id, 'bricks'))
+            os.mkdirs(os.path.join(INSTANCES_PATH, 'bricks', instance_id))
         except Exception:
             pass
 
         try:
             uid = pwd.getpwnam("libvirt-qemu").pw_uid
             gid = grp.getgrnam("kvm").gr_gid
-            os.chown(os.path.join(INSTANCES_PATH, instance_id, 'bricks'),
+            os.chown(os.path.join(INSTANCES_PATH, 'bricks', instance_id),
                      uid, gid)
         except Exception:
             pass
@@ -100,9 +103,11 @@ def config_xml(instance_id):
             sleep(3)
             mywait += 3
             off_instances = conn.listAllDomains(
-                    libvirt.VIR_CONNECT_LIST_DOMAINS_SHUTOFF)
-            LOG.debug("These are off: %s" % [off.UUIDString() for off in off_instances])
-            waiting = instance_id not in [x.UUIDString() for x in off_instances]
+                libvirt.VIR_CONNECT_LIST_DOMAINS_SHUTOFF)
+            LOG.debug("These are off: %s" % [off.UUIDString()
+                                             for off in off_instances])
+            waiting = instance_id not in [x.UUIDString()
+                                          for x in off_instances]
 
         if waiting:
             return False
@@ -132,8 +137,8 @@ def do_execute(req_context, task):
     :param execution_list ([objects.MortarTask, ]): A list of tasks to do
     work on.
     """
-    socket_file = os.path.join(INSTANCES_PATH, task.instance_id,
-                               'bricks/bricks.socket')
+    socket_file = os.path.join(INSTANCES_PATH, 'bricks', task.instance_id,
+                               'bricks.socket')
 
     conn = libvirt.open("qemu:///system")
     if not instance_started(task.instance_id, conn=conn):
@@ -178,8 +183,8 @@ def do_check_last_task(req_context, instance_id):
     :param req_context:
     :param instance_id str: An instance ID
     """
-    log_file = os.path.join(INSTANCES_PATH, instance_id,
-                            'bricks', 'bricks.log')
+    log_file = os.path.join(INSTANCES_PATH, 'bricks', instance_id,
+                            'bricks.log')
 
     try:
         log = open(log_file, "r")
