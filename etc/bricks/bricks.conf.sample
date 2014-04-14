@@ -389,6 +389,9 @@
 # Seconds between deploying job checks. (integer value)
 #deploying_job_interval=5
 
+# Seconds between deleted instance job checks (integer value) 
+#deleted_job_interval=1000k
+
 [conductor_utils]
 
 #
