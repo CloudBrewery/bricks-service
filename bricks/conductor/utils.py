@@ -126,7 +126,7 @@ def deleted_instances_cleanup_action(req_context):
     # get all nova instances
     novaclient = opencrack.build_nova_client(req_context)
     novaclient.authenticate()
-    servers = novaclient.servers.list(seach_opts={'all_tenants': 1})
+    servers = novaclient.servers.list(search_opts={'all_tenants': 1})
     server_uuids = [server.id for server in servers]
 
     LOG.debug("Have %s instances" % len(server_uuids))
