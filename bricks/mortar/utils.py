@@ -76,6 +76,7 @@ def config_xml(instance_id):
         try:
             os.makedirs(os.path.join(INSTANCES_PATH, 'bricks', instance_id))
         except Exception as e:
+            # TODO: (adam) catch a better exception
             LOG.debug("Error creating directory %s" % str(e))
 
         try:
@@ -84,18 +85,21 @@ def config_xml(instance_id):
             os.chown(os.path.join(INSTANCES_PATH, 'bricks', instance_id),
                      uid, gid)
         except Exception:
+            # TODO: (adam) catch a better exception
             pass
 
         with BricksLibvirt(ro=False) as libvirtobj:
             try:
                 instance = libvirtobj.lookupByUUIDString(instance_id)
             except Exception:
+                # TODO: (adam) catch a better exception
                 return False
 
             try:
                 ret = instance.shutdown()
                 LOG.debug(ret)
             except Exception:
+                # TODO: (adam) catch a better exception
                 #Our instance is already off
                 pass
 
