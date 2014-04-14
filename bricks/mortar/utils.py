@@ -260,8 +260,9 @@ def do_tail_brick_log(req_context, brick_log):
             # return the empty log :(
             brick_log.log = "NO LOG"
     else:
+        log_length = int(brick_log.length)
         with open(log_file, 'r') as log:
-            log_lines = log.readlines()[-brick_log.length:]
+            log_lines = log.readlines()[-log_length:]
 
         brick_log.log = '\n'.join(log_lines)
     return brick_log

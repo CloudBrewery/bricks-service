@@ -232,7 +232,7 @@ class ConductorManager(service.PeriodicService):
         log = BrickLog()
         log.uuid = brick.uuid
         log.instance_id = brick.instance_id
-        log.length = length
+        log.length = int(length)
         return self.mortar_rpcapi.do_tail_brick_log(context, log)
 
     @lockutils.synchronized(WORKER_SPAWN_lOCK, 'bricks-')
