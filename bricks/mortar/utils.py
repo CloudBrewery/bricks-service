@@ -6,6 +6,7 @@ import pwd
 import socket
 from time import sleep
 
+from bricks.common.libvirt import BricksLibvirt
 from bricks.objects import mortar_task
 from bricks.openstack.common import log
 
@@ -16,9 +17,9 @@ LOG = log.getLogger(__name__)
 
 
 def get_local_instances():
-    conn = libvirt.openReadOnly("qemu:///system")
+    with BricksLibvirt() as libvirtobj:
+        libvirt_instances = libvirtobj.conn.listAllDomains(0)
 
-    libvirt_instances = conn.listAllDomains(0)
     instances = []
 
     for instance in libvirt_instances:
@@ -85,10 +86,9 @@ def config_xml(instance_id):
         except Exception:
             pass
 
-        with libvirt.open("qemu:///system") as conn:
-
+        with BricksLibvirt(ro=False) as libvirtobj:
             try:
-                instance = conn.lookupByUUIDString(instance_id)
+                instance = libvirtobj.conn.lookupByUUIDString(instance_id)
             except Exception:
                 return False
 
@@ -102,17 +102,18 @@ def config_xml(instance_id):
             while waiting and mywait < maxwait:
                 sleep(3)
                 mywait += 3
-                off_instances = conn.listAllDomains(
+                off_instances = libvirtobj.conn.listAllDomains(
                     libvirt.VIR_CONNECT_LIST_DOMAINS_SHUTOFF)
                 LOG.debug("These are off: %s" % [off.UUIDString()
-                                                for off in off_instances])
+                                                 for off in off_instances])
                 waiting = instance_id not in [x.UUIDString()
-                                            for x in off_instances]
+                                              for x in off_instances]
 
             if waiting:
                 return False
 
-            instance = conn.defineXML(etree.tostring(xml, pretty_print=True))
+            instance = libvirtobj.conn.defineXML(
+                etree.tostring(xml, pretty_print=True))
             instance.create()
 
             xml.write(xml_path, pretty_print=True, xml_declaration=True)
@@ -140,11 +141,11 @@ def do_execute(req_context, task):
     socket_file = os.path.join(INSTANCES_PATH, 'bricks', task.instance_id,
                                'bricks.socket')
 
-    with libvirt.open("qemu:///system") as conn:
-        if not instance_started(task.instance_id, conn):
+    with BricksLibvirt(ro=False) as libvirtobj:
+        if not instance_started(task.instance_id, libvirtobj.conn):
             LOG.debug("Instance %s not started, going to try "
                       "starting it." % task.instance_id)
-            start_instance(task.instance_id, conn)
+            start_instance(task.instance_id, libvirtobj.conn)
 
     if not cloud_init_finished(task.instance_id):
         LOG.debug("cloud-init not finished, "
