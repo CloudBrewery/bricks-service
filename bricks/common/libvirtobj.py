@@ -9,7 +9,10 @@ class BricksLibvirt():
         else:
             self.conn = libvirt.open(path)
 
-    def __exit__(self):
+    def __enter__(self):
+        pass
+
+    def __exit__(self, *args):
         try:
             self.conn.close()
         except Exception:
