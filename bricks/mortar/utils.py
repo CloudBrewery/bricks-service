@@ -85,37 +85,37 @@ def config_xml(instance_id):
         except Exception:
             pass
 
-        conn = libvirt.open("qemu:///system")
+        with libvirt.open("qemu:///system") as conn:
 
-        try:
-            instance = conn.lookupByUUIDString(instance_id)
-        except Exception:
-            return False
+            try:
+                instance = conn.lookupByUUIDString(instance_id)
+            except Exception:
+                return False
 
-        ret = instance.shutdown()
-        LOG.debug(ret)
+            ret = instance.shutdown()
+            LOG.debug(ret)
 
-        maxwait = 15
-        mywait = 0
-        waiting = True
-        LOG.debug("waiting for VM to shut down")
-        while waiting and mywait < maxwait:
-            sleep(3)
-            mywait += 3
-            off_instances = conn.listAllDomains(
-                libvirt.VIR_CONNECT_LIST_DOMAINS_SHUTOFF)
-            LOG.debug("These are off: %s" % [off.UUIDString()
-                                             for off in off_instances])
-            waiting = instance_id not in [x.UUIDString()
-                                          for x in off_instances]
+            maxwait = 15
+            mywait = 0
+            waiting = True
+            LOG.debug("waiting for VM to shut down")
+            while waiting and mywait < maxwait:
+                sleep(3)
+                mywait += 3
+                off_instances = conn.listAllDomains(
+                    libvirt.VIR_CONNECT_LIST_DOMAINS_SHUTOFF)
+                LOG.debug("These are off: %s" % [off.UUIDString()
+                                                for off in off_instances])
+                waiting = instance_id not in [x.UUIDString()
+                                            for x in off_instances]
 
-        if waiting:
-            return False
+            if waiting:
+                return False
 
-        instance = conn.defineXML(etree.tostring(xml, pretty_print=True))
-        instance.create()
+            instance = conn.defineXML(etree.tostring(xml, pretty_print=True))
+            instance.create()
 
-        xml.write(xml_path, pretty_print=True, xml_declaration=True)
+            xml.write(xml_path, pretty_print=True, xml_declaration=True)
 
     return modified
 
@@ -140,11 +140,11 @@ def do_execute(req_context, task):
     socket_file = os.path.join(INSTANCES_PATH, 'bricks', task.instance_id,
                                'bricks.socket')
 
-    conn = libvirt.open("qemu:///system")
-    if not instance_started(task.instance_id, conn=conn):
-        LOG.debug("Instance %s not started, going to try "
-                  "starting it." % task.instance_id)
-        start_instance(task.instance_id, conn=conn)
+    with libvirt.open("qemu:///system") as conn:
+        if not instance_started(task.instance_id, conn):
+            LOG.debug("Instance %s not started, going to try "
+                      "starting it." % task.instance_id)
+            start_instance(task.instance_id, conn)
 
     if not cloud_init_finished(task.instance_id):
         LOG.debug("cloud-init not finished, "
@@ -215,8 +215,7 @@ def cloud_init_finished(instance_id):
     return False
 
 
-def instance_started(instance_id, conn=None):
-    conn = conn or libvirt.open("qemu:///system")
+def instance_started(instance_id, conn):
     try:
         instance = conn.lookupByUUIDString(instance_id)
         return instance.isActive()
@@ -225,8 +224,7 @@ def instance_started(instance_id, conn=None):
         return False
 
 
-def start_instance(instance_id, conn=None):
-    conn = conn or libvirt.open("qemu:///system")
+def start_instance(instance_id, conn):
     try:
         instance = conn.lookupByUUIDString(instance_id)
         return instance.create()
