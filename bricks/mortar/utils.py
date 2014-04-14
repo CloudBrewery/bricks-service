@@ -6,7 +6,7 @@ import pwd
 import socket
 from time import sleep
 
-from bricks.common.libvirt import BricksLibvirt
+from bricks.common.libvirtobj import BricksLibvirt
 from bricks.objects import mortar_task
 from bricks.openstack.common import log
 
