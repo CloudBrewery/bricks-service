@@ -31,3 +31,4 @@ WSME>=0.6
 Jinja2
 pyghmi>=0.5.8
 mandrill==1.0.53
+raven==4.1.1
