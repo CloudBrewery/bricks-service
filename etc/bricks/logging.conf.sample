@@ -1,0 +1,38 @@
+[loggers]
+keys = root
+
+[handlers]
+keys = stderr, stdout, null, raven
+
+[formatters]
+keys = default
+
+[logger_root]
+level = INFO
+handlers = stderr, raven 
+
+[handler_stderr]
+class = StreamHandler
+level = DEBUG 
+args = (sys.stderr,)
+formatter = default
+
+[handler_stdout]
+class = StreamHandler
+level = INFO
+args = (sys.stdout,)
+formatter = default
+
+[handler_null]
+class = bricks.openstack.common.log.NullHandler
+formatter = default
+args = ()
+
+[handler_raven]
+class = raven.handlers.logging.SentryHandler
+level = WARNING
+args = ("http://cf51be3757824a519fddb01959e2870e:21a58f238b844dfe9db5cef5d368e789@sentry.clouda.ca/5",)
+formatter = default
+
+[formatter_default]
+format = %(asctime)s %(levelname)s %(message)s
