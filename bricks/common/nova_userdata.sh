@@ -5,13 +5,6 @@ echo "--------------------------"
 echo "Prepare build env"
 echo "--------------------------"
 
-echo "
-deb mirror://mirrors.ubuntu.com/mirrors.txt precise main restricted universe multiverse
-deb mirror://mirrors.ubuntu.com/mirrors.txt precise-updates main restricted universe multiverse
-deb mirror://mirrors.ubuntu.com/mirrors.txt precise-backports main restricted universe multiverse
-deb mirror://mirrors.ubuntu.com/mirrors.txt precise-security main restricted universe multiverse
-"|cat - /etc/apt/sources.list > /tmp/out && mv /tmp/out /etc/apt/sources.list
-
 #Make build dirs
 mkdir $BUILD_DIR
 cd $BUILD_DIR
