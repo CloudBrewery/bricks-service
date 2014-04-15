@@ -131,7 +131,6 @@ class ConductorManager(service.PeriodicService):
             config_files = self.dbapi.get_configfile_list(
                 filters={'brickconfig_uuid': brick.brickconfig_uuid})
 
-
             task = MortarTask()
             task.instance_id = brick.instance_id
             task.configuration = {}
@@ -190,7 +189,7 @@ class ConductorManager(service.PeriodicService):
         if task_status not in STATE_LIST:
             LOG.debug(
                 "Received invalid task state for instance %s state " % (
-                    instance_id, task_status))
+                    instance_id, str(task_status)))
             return
 
         brick = self.dbapi.get_brick(brick_id=None, instance_id=instance_id)
