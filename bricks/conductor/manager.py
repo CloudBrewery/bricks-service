@@ -45,7 +45,7 @@ conductor_opts = [
                default=15,
                help='Seconds between deploying job checks.'),
     cfg.IntOpt('deleted_job_interval',
-               default=60,
+               default=600,
                help='Seconds between deleted instance job checks.'),
     cfg.IntOpt('heartbeat_timeout',
                default=60,
