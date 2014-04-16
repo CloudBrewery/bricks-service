@@ -77,7 +77,7 @@ class Brick(base.APIBase):
         if not expand:
             brick.unset_fields_except(['uuid', 'brickconfig_uuid',
                                        'deployed_at', 'instance_id',
-                                       'status'])
+                                       'tenant_id', 'status'])
         brick.links = [
             link.Link.make_link('self',
                                 pecan.request.host_url,
