@@ -178,6 +178,28 @@ class ConductorManager(service.PeriodicService):
         LOG.debug("Spawning delete job task")
         self._spawn_worker(utils.deleted_instances_cleanup_action, context)
 
+    @periodic_task.periodic_task(spacing=600)
+    def set_bricks_versions(self, context):
+        """Temporary task to sync brickconfig versions over to bricks.
+        """
+        LOG.debug("Syncing brick versions (TEMP func)")
+        db = dbapi.get_instance()
+        bricks = db.get_brick_list()
+        brickconfigs = db.get_brickconfig_list()
+
+        bc_versions = {}
+
+        for bc in brickconfigs:
+            bc_versions[bc.get("uuid")] = bc.version
+
+        for brick in bricks:
+            if not brick.configuration.get("current_version"):
+                new_config = brick.configuration.copy()
+                new_config["current_version"] = bc_versions.get(
+                    brick.brickconfig_uuid)
+                brick.configuration = new_config
+                brick.save(context)
+
     def do_report_last_task(self, context, instance_id, task_status):
         """A report back from mortar that a task has been completed.
 

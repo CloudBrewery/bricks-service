@@ -183,6 +183,19 @@ class ManagerTestCase(base.DbTestCase):
         self.service._worker_pool.waitall()
         self.assertEqual(1, deleted_call.call_count)
 
+    def test_set_bricks_versions(self):
+        brick = self.dbapi.create_brick(
+            utils.get_test_brick())
+        brickconfig = self.dbapi.create_brickconfig(
+            utils.get_test_brickconfig())
+
+        self.service.start()
+        self.service.set_bricks_versions(self.context)
+        brick.refresh(self.context)
+        print brick.configuration
+        self.assertEqual(brickconfig.version,
+                         brick.configuration.get("current_version"))
+
     @mock.patch('bricks.conductor.utils.notify_completion')
     def test_report_task_done(self, notify_fn):
         brick = self.dbapi.create_brickconfig(
