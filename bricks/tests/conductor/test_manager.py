@@ -192,7 +192,6 @@ class ManagerTestCase(base.DbTestCase):
         self.service.start()
         self.service.set_bricks_versions(self.context)
         brick.refresh(self.context)
-        print brick.configuration
         self.assertEqual(brickconfig.version,
                          brick.configuration.get("current_version"))
 
