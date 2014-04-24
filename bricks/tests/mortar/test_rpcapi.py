@@ -55,7 +55,7 @@ class RPCAPITestCase(base.DbTestCase):
 
     def test_do_execute(self):
         self._test_rpcapi(
-            'do_execute', 'cast',
+            'do_execute', 'fanout_cast',
             execution_task=objects.MortarTask().obj_to_primitive())
 
     def test_tail_log(self):

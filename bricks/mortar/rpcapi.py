@@ -32,27 +32,29 @@ class MortarAPI(bricks.openstack.common.rpc.proxy.RpcProxy):
             default_version=self.RPC_API_VERSION)
 
     def do_ping(self, context, topic=None):
-        self.cast(context,
-                  self.make_msg('process_notification',
-                                notification={'event_type': 'ping'}),
-                  topic=topic or self.topic)
+        self.fanout_cast(
+            context,
+            self.make_msg('process_notification',
+                          notification={'event_type': 'ping'}),
+            topic=topic or self.topic)
 
     def do_execute(self, context, execution_task, topic=None):
-        self.cast(context,
-                  self.make_msg('do_execute', execution_task=execution_task),
-                  topic=topic or self.topic)
+        self.fanout_cast(
+            context,
+            self.make_msg('do_execute', execution_task=execution_task),
+            topic=topic or self.topic)
 
     def do_check_instances(self, context, instance_list, topic=None):
-        self.cast(context,
-                  self.make_msg('do_check_instances',
-                                instance_list=instance_list),
-                  topic=topic or self.topic)
+        self.fanout_cast(
+            context,
+            self.make_msg('do_check_instances', instance_list=instance_list),
+            topic=topic or self.topic)
 
     def do_check_last_task(self, context, instance_id, topic=None):
-        self.cast(context,
-                  self.make_msg('do_check_last_task',
-                                instance_id=instance_id),
-                  topic=topic or self.topic)
+        self.fanout_cast(
+            context,
+            self.make_msg('do_check_last_task', instance_id=instance_id),
+            topic=topic or self.topic)
 
     def do_tail_brick_log(self, context, brick_log, topic=None):
         return self.call(
