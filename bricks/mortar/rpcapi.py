@@ -51,7 +51,7 @@ class MortarAPI(bricks.openstack.common.rpc.proxy.RpcProxy):
             topic=topic or self.topic)
 
     def do_check_last_task(self, context, instance_id, topic=None):
-        self.fanout_cast(
+        self.cast(
             context,
             self.make_msg('do_check_last_task', instance_id=instance_id),
             topic=topic or self.topic)
