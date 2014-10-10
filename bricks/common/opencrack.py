@@ -86,7 +86,7 @@ def api_request(catalog_type, token_id, tenant_id, url, data=None,
     # find the service in the token's catalog
     for service in token.serviceCatalog:
         if service["type"] == catalog_type:
-            endpoint = service["endpoints"][0]["publicURL"]
+            endpoint = service["endpoints"][0]["internalURL"]
 
     # Use requests to post to the API url, since the nova client blows
     server_url = "%s%s" % (endpoint, url)
