@@ -21,6 +21,13 @@ class ThreadedSimpleServer(socketserver.ThreadingMixIn,
     pass
 
 
+class StopRDNSPlease(simple_server.WSGIRequestHandler):
+
+    # Disable logging DNS lookups
+    def address_string(self):
+        return str(self.client_address[0])
+
+
 def main():
     # Pase config file and command line options, then start logging
     bricks_service.prepare_service(sys.argv)
@@ -31,7 +38,8 @@ def main():
     wsgi = simple_server.make_server(
         host, port,
         app.VersionSelectorApplication(),
-        server_class=ThreadedSimpleServer)
+        server_class=ThreadedSimpleServer,
+        handler_class=StopRDNSPlease)
 
     LOG = log.getLogger(__name__)
     LOG.info(_("Serving on http://%(host)s:%(port)s") %
