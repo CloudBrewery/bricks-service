@@ -28,6 +28,7 @@ def build_nova_client(req_context):
                            password,
                            project_id=tenant_name,
                            auth_url=CONF.keystone_authtoken.auth_uri,
+                           endpoint_type='internalURL',
                            insecure=False)
 
     if req_context.auth_token != 'admin':
